@@ -1,12 +1,12 @@
 {
-  "name": "@jsonic/directive",
+  "name": "@jsonic/csv",
   "version": "0.8.0",
-  "description": "This plugin allows the [Jsonic](https://jsonic.senecajs.org) JSON parser to support directive syntax.",
-  "main": "directive.js",
+  "description": "This plugin allows the [Jsonic](https://jsonic.senecajs.org) JSON parser to support csv syntax.",
+  "main": "csv.js",
   "type": "commonjs",
-  "browser": "directive.min.js",
-  "types": "directive.d.ts",
-  "homepage": "https://github.com/jsonicjs/directive",
+  "browser": "csv.min.js",
+  "types": "csv.d.ts",
+  "homepage": "https://github.com/jsonicjs/csv",
   "keywords": [
     "pattern",
     "matcher",
@@ -17,14 +17,14 @@
   "author": "Richard Rodger (http://richardrodger.com)",
   "repository": {
     "type": "git",
-    "url": "git://github.com/jsonicjs/directive.git"
+    "url": "git://github.com/jsonicjs/csv.git"
   },
   "scripts": {
     "test": "jest --coverage",
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
     "watch": "tsc -w -d",
-    "build": "tsc -d && cp directive.js directive.min.js && browserify -o directive.min.js -e directive.js -s @JsonicDirective -im -i assert -p tinyify",
+    "build": "tsc -d && cp csv.js csv.min.js && browserify -o csv.min.js -e csv.js -s @JsonicCsv -im -i assert -p tinyify",
     "prettier": "prettier --write --no-semi --single-quote *.ts test/*.js",
     "clean": "rm -rf node_modules yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm test",
@@ -40,14 +40,14 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/jest": "^28.1.4",
+    "@types/jest": "^28.1.6",
     "browserify": "^17.0.0",
-    "esbuild": "^0.14.48",
+    "esbuild": "^0.14.51",
     "esbuild-jest": "^0.5.0",
-    "jest": "^28.1.2",
+    "jest": "^28.1.3",
     "prettier": "^2.7.1",
     "tinyify": "^3.1.0",
-    "ts-jest": "^28.0.5",
+    "ts-jest": "^28.0.7",
     "typescript": "^4.7.4"
   },
   "peerDependencies": {

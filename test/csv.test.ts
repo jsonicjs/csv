@@ -1,16 +1,17 @@
 /* Copyright (c) 2021-2022 Richard Rodger and other contributors, MIT License */
 
 
+
 import { Jsonic, Rule } from '@jsonic/jsonic-next'
-import { Directive } from '../directive'
+import { Csv } from '../csv'
 
 
 
 
-describe('directive', () => {
+describe('csv', () => {
 
   test('happy', () => {
-    const j = Jsonic.make().use(Directive, {
+    const j = Jsonic.make().use(Csv, {
       name: 'happy',
       open: '@',
       action: (rule: Rule) => {
@@ -48,7 +49,7 @@ describe('directive', () => {
 
 
   test('constant', () => {
-    const j0 = Jsonic.make().use(Directive, {
+    const j0 = Jsonic.make().use(Csv, {
       name: 'constant',
       open: '@',
       action: (rule: Rule) => rule.node = 'X'
@@ -60,7 +61,7 @@ describe('directive', () => {
 
   test('action-option-prop', () => {
     const j0 = Jsonic.make()
-      .use(Directive, {
+      .use(Csv, {
         name: 'constant',
         open: '@',
         action: 'custom.x'
@@ -73,7 +74,7 @@ describe('directive', () => {
 
 
   test('close', () => {
-    const j = Jsonic.make().use(Directive, {
+    const j = Jsonic.make().use(Csv, {
       name: 'foo',
       open: 'foo<',
       close: '>',
@@ -99,7 +100,7 @@ describe('directive', () => {
     expect(() => j('a:>', { xlog: -1 })).toThrow(/foo_close/)
 
 
-    const k = j.use(Directive, {
+    const k = j.use(Csv, {
       name: 'bar',
       open: 'bar<',
       close: '>',
@@ -132,7 +133,7 @@ describe('directive', () => {
 
 
     expect(() =>
-      j.use(Directive, {
+      j.use(Csv, {
         name: 'bar',
         open: 'bar<',
         action: () => null
@@ -145,7 +146,7 @@ describe('directive', () => {
 
   test('inject', () => {
 
-    const j = Jsonic.make().use(Directive, {
+    const j = Jsonic.make().use(Csv, {
       name: 'inject',
       open: '<',
       close: '>',
@@ -201,7 +202,7 @@ describe('directive', () => {
 
 
   test('adder', () => {
-    const j = Jsonic.make().use(Directive, {
+    const j = Jsonic.make().use(Csv, {
       name: 'adder',
       open: 'add<',
       close: '>',
@@ -219,7 +220,7 @@ describe('directive', () => {
     expect(j('[add<a,b>]')).toEqual(['ab'])
 
 
-    const k = j.use(Directive, {
+    const k = j.use(Csv, {
       name: 'multiplier',
       open: 'mul<',
       close: '>',
@@ -244,7 +245,7 @@ describe('directive', () => {
 
 
   test('edges', () => {
-    let j = Jsonic.make().use(Directive, {
+    let j = Jsonic.make().use(Csv, {
       name: 'none',
       open: '@',
       action: () => null,
@@ -255,7 +256,7 @@ describe('directive', () => {
 
 
   test('error', () => {
-    let j = Jsonic.make().use(Directive, {
+    let j = Jsonic.make().use(Csv, {
       name: 'bad',
       open: '@',
       action: (rule: Rule) => {

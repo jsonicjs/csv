@@ -2,10 +2,10 @@
 /* Copyright (c) 2021-2022 Richard Rodger and other contributors, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonic_next_1 = require("@jsonic/jsonic-next");
-const directive_1 = require("../directive");
-describe('directive', () => {
+const csv_1 = require("../csv");
+describe('csv', () => {
     test('happy', () => {
-        const j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'happy',
             open: '@',
             action: (rule) => {
@@ -38,7 +38,7 @@ describe('directive', () => {
         expect(j('{"a":[1,@b]}')).toEqual({ a: [1, '<b>'] });
     });
     test('constant', () => {
-        const j0 = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        const j0 = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'constant',
             open: '@',
             action: (rule) => rule.node = 'X'
@@ -47,7 +47,7 @@ describe('directive', () => {
     });
     test('action-option-prop', () => {
         const j0 = jsonic_next_1.Jsonic.make()
-            .use(directive_1.Directive, {
+            .use(csv_1.Csv, {
             name: 'constant',
             open: '@',
             action: 'custom.x'
@@ -56,7 +56,7 @@ describe('directive', () => {
         expect(j0('@')).toEqual(11);
     });
     test('close', () => {
-        const j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'foo',
             open: 'foo<',
             close: '>',
@@ -74,7 +74,7 @@ describe('directive', () => {
         expect(j('a:foo<y:2,>', { xlog: -1 })).toEqual({ a: 'FOO' });
         expect(() => j('>')).toThrow(/foo_close/);
         expect(() => j('a:>', { xlog: -1 })).toThrow(/foo_close/);
-        const k = j.use(directive_1.Directive, {
+        const k = j.use(csv_1.Csv, {
             name: 'bar',
             open: 'bar<',
             close: '>',
@@ -95,14 +95,14 @@ describe('directive', () => {
         expect(k('{"a":1,b:foo<[2]>}')).toEqual({ a: 1, b: 'FOO' });
         expect(k('{"a":[1,foo<b>]}')).toEqual({ a: [1, 'FOO'] });
         expect(k('{"a":foo< a >, b:bar<>}')).toEqual({ a: 'FOO', b: 'BAR' });
-        expect(() => j.use(directive_1.Directive, {
+        expect(() => j.use(csv_1.Csv, {
             name: 'bar',
             open: 'bar<',
             action: () => null
         })).toThrow(/bar</);
     });
     test('inject', () => {
-        const j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'inject',
             open: '<',
             close: '>',
@@ -151,7 +151,7 @@ describe('directive', () => {
         expect(j('210,<,2,3,4>,99')).toEqual([210, [null, 2, 3, 4], 99]);
     });
     test('adder', () => {
-        const j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'adder',
             open: 'add<',
             close: '>',
@@ -166,7 +166,7 @@ describe('directive', () => {
         expect(j('add<1,2>')).toEqual(3);
         expect(j('a:add<1,2>')).toEqual({ a: 3 });
         expect(j('[add<a,b>]')).toEqual(['ab']);
-        const k = j.use(directive_1.Directive, {
+        const k = j.use(csv_1.Csv, {
             name: 'multiplier',
             open: 'mul<',
             close: '>',
@@ -186,7 +186,7 @@ describe('directive', () => {
         expect(j('[add<a,b>]')).toEqual(['ab']);
     });
     test('edges', () => {
-        let j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        let j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'none',
             open: '@',
             action: () => null,
@@ -195,7 +195,7 @@ describe('directive', () => {
         expect(() => j('a:@x')).toThrow('unexpected');
     });
     test('error', () => {
-        let j = jsonic_next_1.Jsonic.make().use(directive_1.Directive, {
+        let j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
             name: 'bad',
             open: '@',
             action: (rule) => {
@@ -206,4 +206,4 @@ describe('directive', () => {
         expect(() => j('a:@x')).toThrow(/bad.*:1:3/s);
     });
 });
-//# sourceMappingURL=directive.test.js.map
+//# sourceMappingURL=csv.test.js.map
