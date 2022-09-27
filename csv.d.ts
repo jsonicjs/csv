@@ -1,5 +1,9 @@
 import { Plugin, Config, Options, Lex } from '@jsonic/jsonic-next';
 declare type CsvOptions = {
+    trim: boolean | null;
+    comment: boolean | null;
+    number: boolean | null;
+    stream: null | ((what: string, record?: Record<string, any> | Error) => void);
     strict: boolean;
 };
 declare const Csv: Plugin;
