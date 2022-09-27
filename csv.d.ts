@@ -3,6 +3,8 @@ declare type CsvOptions = {
     trim: boolean | null;
     comment: boolean | null;
     number: boolean | null;
+    header: boolean;
+    object: boolean;
     stream: null | ((what: string, record?: Record<string, any> | Error) => void);
     strict: boolean;
 };

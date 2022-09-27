@@ -3,15 +3,15 @@ const { Jsonic, Debug } = require('@jsonic/jsonic-next')
 const { Csv } = require('..')
 
 
-// const c0 = Jsonic.make()
-//       // .use(Debug,{trace:true})
-//       .use(Csv)
+const c0 = Jsonic.make()
+      .use(Debug,{trace:true})
+      .use(Csv)
 
-const u0 = Jsonic.make()
-      // .use(Debug,{trace:true})
-      .use(Csv,{
-        strict:false,
-      })
+// const u0 = Jsonic.make()
+//       // .use(Debug,{trace:true})
+//       .use(Csv,{
+//         strict:false,
+//       })
 
 // const csv = Jsonic.make()
 //       // .use(Debug,{trace:true})
@@ -69,8 +69,11 @@ const u0 = Jsonic.make()
 // 1 ,2 , 3 ,4 5 , 6 7,8 9 0
 // `))
 
-// console.log(c0(`a
+console.log(c0(`a,b
+"x"y,z`))
+
+// console.log(u0(`a
 //  b `))
 
-console.log(u0(`a
- b `))
+
+

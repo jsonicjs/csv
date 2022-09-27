@@ -21,6 +21,8 @@ type CsvOptions = {
   trim: boolean | null
   comment: boolean | null
   number: boolean | null
+  header: boolean
+  object: boolean
   stream: null | ((what: string, record?: Record<string, any> | Error) => void)
   strict: boolean
 }
@@ -30,6 +32,8 @@ type CsvOptions = {
 
 const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
   const strict = !!options.strict
+  const objres = !!options.object
+  const header = !!options.header
   const stream = options.stream
 
   let trim = !!options.trim
@@ -38,6 +42,9 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
 
   if (strict) {
     jsonic.lex(makeCsvStringMatcher)
+    jsonic.options({
+      rule: { exclude: 'jsonic' },
+    })
   }
   else {
     trim = null === options.trim ? true : trim
@@ -70,6 +77,8 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       '#CL': null,
     }
   }
+
+  let VAL = jsonic.internal().config.tokenSet.val
 
   let jsonicOptions: any = {
     rule: {
@@ -104,7 +113,8 @@ fields per row are expected.`,
   jsonic.options(jsonicOptions)
 
 
-  let { LN, CA, TX, SP, ZZ } = jsonic.token
+  // let { LN, CA, TX, SP, ZZ } = jsonic.token
+  let { LN, CA, SP, ZZ } = jsonic.token
 
 
   jsonic.rule('csv', (rs: RuleSpec): RuleSpec => {
@@ -139,15 +149,19 @@ fields per row are expected.`,
         let fields: string[] = ctx.use.fields
 
         // First line is fields
-        if (null == fields) {
+        if (header && null == fields) {
           fields = ctx.use.fields = rule.child.node
         }
         else {
-          let list = rule.child.node
-          let record: Record<string, any> = {}
-          for (let i = 0; i < list.length; i++) {
-            let field_name = fields[i]
-            record[field_name] = list[i]
+          let record: any = rule.child.node
+
+          if (objres) {
+            let obj: Record<string, any> = {}
+            for (let i = 0; i < record.length; i++) {
+              let field_name = header ? fields[i] : i
+              obj[field_name] = record[i]
+            }
+            record = obj
           }
 
           if (stream) {
@@ -164,7 +178,8 @@ fields per row are expected.`,
   jsonic.rule('val', (rs: RuleSpec) => {
     return rs
       .open([
-        { s: [TX, SP], b: 2, p: 'text' },
+        // { s: [TX, SP], b: 2, p: 'text' },
+        { s: [VAL, SP], b: 2, p: 'text' },
         { s: [SP], b: 1, p: 'text' }
       ], { append: false })
   })
@@ -177,7 +192,8 @@ fields per row are expected.`,
       .open([
         {
           // NOTE: r in open means no close except final
-          s: [TX, SP], b: 1, r: 'text', n: { text: 1 },
+          // s: [TX, SP], b: 1, r: 'text', n: { text: 1 },
+          s: [VAL, SP], b: 1, r: 'text', n: { text: 1 },
           g: 'csv,space,follows',
           a: (r: Rule) => {
             // Keep appending to prev node
@@ -186,7 +202,8 @@ fields per row are expected.`,
           }
         },
         {
-          s: [SP, TX], r: 'text', n: { text: 1 },
+          // s: [SP, TX], r: 'text', n: { text: 1 },
+          s: [SP, VAL], r: 'text', n: { text: 1 },
           g: 'csv,space,leads',
           a: (r: Rule) => {
             let v = (1 === r.n.text ? r : r.prev)
@@ -345,6 +362,12 @@ Csv.defaults = {
 
   // Support numbers. Default: false (!strict=>true)
   number: null,
+
+  // First row is headers.
+  header: true,
+
+  // Records are returned as objects. If false, as arrays.
+  object: true,
 
   // Stream records.
   stream: null,

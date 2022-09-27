@@ -146,8 +146,13 @@ true,[1,2],{x:{y:"q\\"w"}}
                 expect(out).toEqual(spec.out);
             }
             catch (e) {
-                e.message += ' FIXTURE: ' + name;
-                throw e;
+                if (spec.err) {
+                    expect(spec.err).toEqual(e.code);
+                }
+                else {
+                    console.error('FIXTURE: ' + name);
+                    throw e;
+                }
             }
         });
     });
