@@ -10,6 +10,31 @@ const csv_1 = require("../csv");
 const Spectrum = require('csv-spectrum');
 const Fixtures = require('./csv-fixtures');
 describe('csv', () => {
+    test('line', async () => {
+        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        expect(jo('\n')).toEqual([]);
+        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        expect(ja('\n')).toEqual([]);
+    });
+    test('comma', async () => {
+        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        expect(jo('a\n1,')).toEqual([{ a: '1', 'field~1': '' }]);
+        expect(jo('a\n,1')).toEqual([{ a: '', 'field~1': '1' }]);
+        expect(jo('a,b\n1,2,')).toEqual([{ a: '1', b: '2', 'field~2': '' }]);
+        expect(jo('a,b\n,1,2')).toEqual([{ a: '', b: '1', 'field~2': '2' }]);
+        expect(jo('\n1')).toEqual([{ 'field~0': '1' }]);
+        expect(jo('a\n1,\n')).toEqual([{ a: '1', 'field~1': '' }]);
+        expect(jo('a\n,1\n')).toEqual([{ a: '', 'field~1': '1' }]);
+        expect(jo('a,b\n1,2,\n')).toEqual([{ a: '1', b: '2', 'field~2': '' }]);
+        expect(jo('a,b\n,1,2\n')).toEqual([{ a: '', b: '1', 'field~2': '2' }]);
+        expect(jo('\n1\n')).toEqual([{ 'field~0': '1' }]);
+        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        expect(ja('a\n1,')).toEqual([['1', '']]);
+        expect(ja('a\n,1')).toEqual([['', '1']]);
+        expect(ja('a,b\n1,2,')).toEqual([['1', '2', '']]);
+        expect(ja('a,b\n,1,2')).toEqual([['', '1', '2']]);
+        expect(ja('\n1')).toEqual([['1']]);
+    });
     test('double-quote', async () => {
         const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\n"b"')).toEqual([{ a: 'b' }]);
@@ -117,6 +142,7 @@ true,[1,2],{x:{y:"q\\"w"}}
                 },
             },
         ]);
+        expect(() => j('a\n{x:1}y')).toThrow('unexpected');
     });
     test('spectrum', async () => {
         const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);

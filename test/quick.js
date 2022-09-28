@@ -5,7 +5,7 @@ const { Csv } = require('..')
 
 const c0 = Jsonic.make()
       .use(Debug,{trace:true})
-      .use(Csv)
+      .use(Csv,{comment:true,object:false,header:false})
 
 // const u0 = Jsonic.make()
 //       // .use(Debug,{trace:true})
@@ -69,11 +69,31 @@ const c0 = Jsonic.make()
 // 1 ,2 , 3 ,4 5 , 6 7,8 9 0
 // `))
 
-console.log(c0(`a,b
-"x"y,z`))
+// console.log(c0(`a,b
+// "x"y,z`))
 
 // console.log(u0(`a
 //  b `))
+
+
+// console.log(c0(`
+// 1`))
+
+// console.log(c0(''))
+
+console.log(c0(`#foo
+#bar
+1,2
+#a
+#b
+
+
+3,4
+
+#c
+
+
+`))
 
 
 

@@ -191,49 +191,18 @@ module.exports = {
     raw: 'a,"b,"c\nd,e,f',
     err: 'unexpected',
   },
-  /*  
   "papa-Quoted field has invalid trailing quote before delimiter": {
     opt: { header: false, object: false },
     raw: 'a,"b"c,d\ne,f,g',
-		notes: "The input is malformed, opening quotes identified, trailing quote is malformed. Trailing quote should be escaped or followed by valid new line or delimiter to be valid",
-    out: [['a', 'b"c,d\ne,f,g']],
-			errors: [{
-				"type": "Quotes",
-				"code": "InvalidQuotes",
-				"message": "Trailing quote on quoted field is malformed",
-				"row": 0,
-				"index": 3
-			},
-			{
-				"type": "Quotes",
-				"code": "MissingQuotes",
-				"message": "Quoted field unterminated",
-				"row": 0,
-				"index": 3
-			}]
-		}
-	},
+    err: 'unexpected',
+  },
+
   "papa-Quoted field has invalid trailing quote after new line": {
     opt: { header: false, object: false },
     raw: 'a,"b,c\nd"e,f,g',
-		notes: "The input is malformed, opening quotes identified, trailing quote is malformed. Trailing quote should be escaped or followed by valid new line or delimiter to be valid",
-    out: [['a', 'b,c\nd"e,f,g']],
-			errors: [{
-				"type": "Quotes",
-				"code": "InvalidQuotes",
-				"message": "Trailing quote on quoted field is malformed",
-				"row": 0,
-				"index": 3
-			},
-			{
-				"type": "Quotes",
-				"code": "MissingQuotes",
-				"message": "Quoted field unterminated",
-				"row": 0,
-				"index": 3
-			}]
-		}
-	},
+    err: 'unexpected',
+  },
+  
   "papa-Quoted field has valid trailing quote via delimiter": {
     opt: { header: false, object: false },
     raw: 'a,"b",c\nd,e,f',
@@ -272,13 +241,10 @@ module.exports = {
     opt: { header: false, object: false },
     raw: 'a,b,c\nd,e,f\n"g","h","i"\n"j","k","l"',
     out: [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i'], ['j', 'k', 'l']],
-},
-"papa-Line ends with quoted field: first field of next line is empty, \\n": {
+  },
+  "papa-Line ends with quoted field: first field of next line is empty, \\n": {
     opt: { header: false, object: false },
     raw: 'a,b,c\n,e,f\n,"h","i"\n,"k","l"',
-		config: {
-			newline: '\n',
-		},
     out: [['a', 'b', 'c'], ['', 'e', 'f'], ['', 'h', 'i'], ['', 'k', 'l']],
   },
   "papa-Quoted field at end of row (but not at EOF) has quotes": {
@@ -317,153 +283,116 @@ module.exports = {
     out: [['Abc def']],
   },
   "papa-Commented line at beginning": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: '# Comment!\na,b,c',
-		config: { comments: true },
     out: [['a', 'b', 'c']],
   },
   "papa-Commented line in middle": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: 'a,b,c\n# Comment\nd,e,f',
-		config: { comments: true },
     out: [['a', 'b', 'c'], ['d', 'e', 'f']],
   },
   "papa-Commented line at end": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: 'a,true,false\n# Comment',
-		config: { comments: true },
     out: [['a', 'true', 'false']],
   },
   "papa-Two comment lines consecutively": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: 'a,b,c\n#comment1\n#comment2\nd,e,f',
-		config: { comments: true },
     out: [['a', 'b', 'c'], ['d', 'e', 'f']],
   },
   "papa-Two comment lines consecutively at end of file": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: 'a,b,c\n#comment1\n#comment2',
-		config: { comments: true },
     out: [['a', 'b', 'c']],
   },
   "papa-Three comment lines consecutively at beginning of file": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: '#comment1\n#comment2\n#comment3\na,b,c',
-		config: { comments: true },
     out: [['a', 'b', 'c']],
   },
   "papa-Entire file is comment lines": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: '#comment1\n#comment2\n#comment3',
-		config: { comments: true },
     out: [],
   },
-  "papa-Comment with non-default character": {
-    opt: { header: false, object: false },
-    raw: 'a,b,c\n!Comment goes here\nd,e,f',
-		config: { comments: '!' },
-    out: [['a', 'b', 'c'], ['d', 'e', 'f']],
-  },
+  // "papa-Comment with non-default character": {
+  //   opt: { header: false, object: false },
+  //   raw: 'a,b,c\n!Comment goes here\nd,e,f',
+  //   config: { comments: '!' },
+  //   out: [['a', 'b', 'c'], ['d', 'e', 'f']],
+  // },
   "papa-Bad comments value specified": {
-		notes: "Should silently disable comment parsing",
     opt: { header: false, object: false },
     raw: 'a,b,c\n5comment\nd,e,f',
-		config: { comments: 5 },
     out: [['a', 'b', 'c'], ['5comment'], ['d', 'e', 'f']],
   },
-  "papa-Multi-character comment string": {
-    opt: { header: false, object: false },
-    raw: 'a,b,c\n=N(Comment)\nd,e,f',
-		config: { comments: "=N(" },
-    out: [['a', 'b', 'c'], ['d', 'e', 'f']],
-  },
-  "papa-Input with only a commented line": {
-    opt: { header: false, object: false },
-    raw: '#commented line',
-		config: { comments: true, delimiter: ',' },
-    out: [],
-  },
-  "papa-Input with only a commented line and blank line after": {
-    opt: { header: false, object: false },
-    raw: '#commented line\n',
-		config: { comments: true, delimiter: ',' },
-    out: [['']],
-},
-"papa-Input with only a commented line: without comments enabled": {
+  // "papa-Multi-character comment string": {
+  //   opt: { header: false, object: false },
+  //   raw: 'a,b,c\n=N(Comment)\nd,e,f',
+  //       	config: { comments: "=N(" },
+  //   out: [['a', 'b', 'c'], ['d', 'e', 'f']],
+  // },
+  // "papa-Input with only a commented line": {
+  //   opt: { header: false, object: false, comment: true },
+  //   raw: '#commented line',
+  //   out: [],
+  // },
+  // "papa-Input with only a commented line and blank line after": {
+  //   opt: { header: false, object: false, comment: true },
+  //   raw: '#commented line\n',
+  //   out: [['']],
+  // },
+  "papa-Input with only a commented line: without comments enabled": {
     opt: { header: false, object: false },
     raw: '#commented line',
-		config: { delimiter: ',' },
     out: [['#commented line']],
   },
   "papa-Input without comments with line starting with whitespace": {
     opt: { header: false, object: false },
     raw: 'a\n b\nc',
-		config: { delimiter: ',' },
-		notes: "\" \" == false, but \" \" !== false, so === comparison is required",
     out: [['a'], [' b'], ['c']],
-},
-"papa-Multiple rows: one column (no delimiter found)": {
+  },
+  "papa-Multiple rows: one column (no delimiter found)": {
     opt: { header: false, object: false },
     raw: 'a\nb\nc\nd\ne',
     out: [['a'], ['b'], ['c'], ['d'], ['e']],
   },
-  "papa-One column input with empty fields": {
-    opt: { header: false, object: false },
-    raw: 'a\nb\n\n\nc\nd\ne\n',
-    out: [['a'], ['b'], [''], [''], ['c'], ['d'], ['e'], ['']],
-},
-"papa-Fast mode: basic": {
+  // "papa-One column input with empty fields": {
+  //   opt: { header: false, object: false },
+  //   raw: 'a\nb\n\n\nc\nd\ne\n',
+  //   out: [['a'], ['b'], [''], [''], ['c'], ['d'], ['e'], ['']],
+  // },
+  "papa-Fast mode: basic": {
     opt: { header: false, object: false },
     raw: 'a,b,c\nd,e,f',
-		config: { fastMode: true },
     out: [['a', 'b', 'c'], ['d', 'e', 'f']],
   },
   "papa-Fast mode with comments": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, comment: true },
     raw: '// Commented line\na,b,c',
-		config: { fastMode: true, comments: "//" },
     out: [['a', 'b', 'c']],
   },
-  "papa-Fast mode with preview": {
-    opt: { header: false, object: false },
-    raw: 'a,b,c\nd,e,f\nh,j,i\n',
-		config: { fastMode: true, preview: 2 },
-    out: [['a', 'b', 'c'], ['d', 'e', 'f']],
-  },
-  "papa-Fast mode with blank line at end": {
-    opt: { header: false, object: false },
-    raw: 'a,b,c\n',
-		config: { fastMode: true },
-    out: [['a', 'b', 'c'], ['']],
-			errors: []
-		}
-	}
-];
-
-describe('Core Parser Tests', function() {
-	function generateTest(test) {
-		(test.disabled ? it.skip : it)(test.description, function() {
-			var actual = new Papa.Parser(test.config).parse(test.input);
-			assert.deepEqual(actual.errors, test.expected.errors);
-			assert.deepEqual(actual.data, test.expected.data);
-		});
-	}
-
-	for (var i = 0; i < CORE_PARSER_TESTS.length; i++) {
-		generateTest(CORE_PARSER_TESTS[i]);
-	}
-});
+  // "papa-Fast mode with preview": {
+  //   opt: { header: false, object: false },
+  //   raw: 'a,b,c\nd,e,f\nh,j,i\n',
+  //   out: [['a', 'b', 'c'], ['d', 'e', 'f']],
+  // },
+  // "papa-Fast mode with blank line at end": {
+  //   opt: { header: false, object: false },
+  //   raw: 'a,b,c\n',
+  //   out: [['a', 'b', 'c'], ['']],
+  // }
 
 
-
-// Tests for Papa.parse() function -- high-level wrapped parser (CSV to JSON)
-var PARSE_TESTS = [
-"papa-Two rows: just \\r": {
+  "papa-Two rows: just \\r": {
     opt: { header: false, object: false },
     raw: 'A,b,c\rd,E,f',
     out: [['A', 'b', 'c'], ['d', 'E', 'f']],
-},
-"papa-Two rows: \\r\\n": {
+  },
+
+  "papa-Two rows: \\r\\n": {
     opt: { header: false, object: false },
     raw: 'A,b,c\r\nd,E,f',
     out: [['A', 'b', 'c'], ['d', 'E', 'f']],
@@ -483,13 +412,15 @@ var PARSE_TESTS = [
     raw: 'A,"B\nB",C',
     out: [['A', 'B\nB', 'C']],
   },
+
+  /*
   "papa-Quoted fields with spaces between closing quote and next delimiter": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, trim: true },
     raw: 'A,"B" ,C,D\r\nE,F,"G"  ,H',
     out: [['A', 'B', 'C','D'],['E', 'F', 'G','H']],
   },
   "papa-Quoted fields with spaces between closing quote and next new line": {
-    opt: { header: false, object: false },
+    opt: { header: false, object: false, trim: true },
     raw: 'A,B,C,"D" \r\nE,F,G,"H"  \r\nQ,W,E,R',
     out: [['A', 'B', 'C','D'],['E', 'F', 'G','H'],['Q', 'W', 'E','R']],
   },
@@ -520,6 +451,7 @@ var PARSE_TESTS = [
 		config: { header: true },
     out: [],
   },
+/*  
   "papa-Row with too few fields": {
     opt: { header: false, object: false },
     raw: 'A,B,C\r\na,b',
@@ -1555,638 +1487,5 @@ var UNPARSE_TESTS = [
 		expected: '\'Col1\',\'Col2\',\'Col3\'\r\n\'\'\'\tdanger\',\'\'\'\rdanger,\',\'safe, \t\r\''
 	},
 ];
-
-describe('Unparse Tests', function() {
-	function generateTest(test) {
-		(test.disabled ? it.skip : it)(test.description, function() {
-			var actual;
-
-			try {
-				actual = Papa.unparse(test.input, test.config);
-			} catch (e) {
-				if (e instanceof Error) {
-					throw e;
-				}
-				actual = e;
-			}
-
-			assert.strictEqual(actual, test.expected);
-		});
-	}
-
-	for (var i = 0; i < UNPARSE_TESTS.length; i++) {
-		generateTest(UNPARSE_TESTS[i]);
-	}
-});
-
-
-
-var CUSTOM_TESTS = [
-  "papa-Pause and resume works (Regression Test for Bug #636)": {
-		disabled: !XHR_ENABLED,
-		timeout: 30000,
-		expected: [2001, [
-			["Etiam a dolor vitae est vestibulum","84","DEF"],
-			["Etiam a dolor vitae est vestibulum","84","DEF"],
-			["Lorem ipsum dolor sit","42","ABC"],
-			["Etiam a dolor vitae est vestibulum","84","DEF"],
-			["Etiam a dolor vitae est vestibulum","84"],
-			["Lorem ipsum dolor sit","42","ABC"],
-			["Etiam a dolor vitae est vestibulum","84","DEF"],
-			["Etiam a dolor vitae est vestibulum","84","DEF"],
-			["Lorem ipsum dolor sit","42","ABC"],
-			["Lorem ipsum dolor sit","42"]
-		], 0],
-		run: function(callback) {
-			var stepped = 0;
-			var dataRows = [];
-			var errorCount = 0;
-			var output = [];
-			Papa.parse(BASE_PATH + "verylong-sample.csv", {
-				download: true,
-				step: function(results, parser) {
-					stepped++;
-					if (results)
-					{
-						parser.pause();
-						parser.resume();
-						if (results.data && stepped % 200 === 0) {
-							dataRows.push(results.data);
-						}
-					}
-				},
-				complete: function() {
-					output.push(stepped);
-					output.push(dataRows);
-					output.push(errorCount);
-					callback(output);
-				}
-			});
-		}
-	},
-  "papa-Pause and resume works for chunks with NetworkStreamer": {
-		disabled: !XHR_ENABLED,
-		timeout: 30000,
-		expected: ["Etiam a dolor vitae est vestibulum", "84", "DEF"],
-		run: function(callback) {
-			var chunkNum = 0;
-			Papa.parse(BASE_PATH + "verylong-sample.csv", {
-				download: true,
-				chunkSize: 1000,
-				chunk: function(results, parser) {
-					chunkNum++;
-					parser.pause();
-
-					if (chunkNum === 2) {
-						callback(results.data[0]);
-						return;
-					}
-
-					parser.resume();
-				},
-				complete: function() {
-					callback(new Error("Should have found matched row before parsing whole file"));
-				}
-			});
-		}
-	},
-  "papa-Pause and resume works for chunks with FileStreamer": {
-		disabled: !XHR_ENABLED,
-		timeout: 30000,
-		expected: ["Etiam a dolor vitae est vestibulum", "84", "DEF"],
-		run: function(callback) {
-			var chunkNum = 0;
-			var xhr = new XMLHttpRequest();
-			xhr.onload = function() {
-				Papa.parse(new File([xhr.responseText], './verylong-sample.csv'), {
-					chunkSize: 1000,
-					chunk: function(results, parser) {
-						chunkNum++;
-						parser.pause();
-
-						if (chunkNum === 2) {
-							callback(results.data[0]);
-							return;
-						}
-
-						parser.resume();
-					},
-					complete: function() {
-						callback(new Error("Should have found matched row before parsing whole file"));
-					}
-				});
-			};
-
-			xhr.open("GET", BASE_PATH + "verylong-sample.csv");
-			try {
-				xhr.send();
-			} catch (err) {
-				callback(err);
-				return;
-			}
-		}
-	},
-  "papa-Pause and resume works for chunks with StringStreamer": {
-		disabled: !XHR_ENABLED,
-		timeout: 30000,
-		// Test also with string as byte size may be diferent
-		expected: ["Etiam a dolor vitae est vestibulum", "84", "DEF"],
-		run: function(callback) {
-			var chunkNum = 0;
-			var xhr = new XMLHttpRequest();
-			xhr.onload = function() {
-				Papa.parse(xhr.responseText, {
-					chunkSize: 1000,
-					chunk: function(results, parser) {
-						chunkNum++;
-						parser.pause();
-
-						if (chunkNum === 2) {
-							callback(results.data[0]);
-							return;
-						}
-
-						parser.resume();
-					},
-					complete: function() {
-						callback(new Error("Should have found matched row before parsing whole file"));
-					}
-				});
-			};
-
-			xhr.open("GET", BASE_PATH + "verylong-sample.csv");
-			try {
-				xhr.send();
-			} catch (err) {
-				callback(err);
-				return;
-			}
-		}
-	},
-  "papa-Complete is called with all results if neither step nor chunk is defined": {
-		expected: [['A', 'b', 'c'], ['d', 'E', 'f'], ['G', 'h', 'i']],
-		disabled: !FILES_ENABLED,
-		run: function(callback) {
-			Papa.parse(new File(['A,b,c\nd,E,f\nG,h,i'], 'sample.csv'), {
-				chunkSize: 3,
-				complete: function(response) {
-					callback(response.data);
-				}
-			});
-		}
-	},
-  "papa-Step is called for each row": {
-		expected: 2,
-		run: function(callback) {
-			var callCount = 0;
-			Papa.parse('A,b,c\nd,E,f', {
-				step: function() {
-					callCount++;
-				},
-				complete: function() {
-					callback(callCount);
-				}
-			});
-		}
-	},
-  "papa-Data is correctly parsed with steps": {
-		expected: [['A', 'b', 'c'], ['d', 'E', 'f']],
-		run: function(callback) {
-			var data = [];
-			Papa.parse('A,b,c\nd,E,f', {
-				step: function(results) {
-					data.push(results.data);
-				},
-				complete: function() {
-					callback(data);
-				}
-			});
-		}
-	},
-  "papa-Data is correctly parsed with steps (headers)": {
-		expected: [{One: 'A', Two: 'b', Three: 'c'}, {One: 'd', Two: 'E', Three: 'f'}],
-		run: function(callback) {
-			var data = [];
-			Papa.parse('One,Two,Three\nA,b,c\nd,E,f', {
-				header: true,
-				step: function(results) {
-					data.push(results.data);
-				},
-				complete: function() {
-					callback(data);
-				}
-			});
-		}
-	},
-  "papa-Data is correctly parsed with steps and worker (headers)": {
-		expected: [{One: 'A', Two: 'b', Three: 'c'}, {One: 'd', Two: 'E', Three: 'f'}],
-		run: function(callback) {
-			var data = [];
-			Papa.parse('One,Two,Three\nA,b,c\nd,E,f', {
-				header: true,
-				worker: true,
-				step: function(results) {
-					data.push(results.data);
-				},
-				complete: function() {
-					callback(data);
-				}
-			});
-		}
-	},
-  "papa-Data is correctly parsed with steps and worker": {
-		expected: [['A', 'b', 'c'], ['d', 'E', 'f']],
-		run: function(callback) {
-			var data = [];
-			Papa.parse('A,b,c\nd,E,f', {
-				worker: true,
-				step: function(results) {
-					data.push(results.data);
-				},
-				complete: function() {
-					callback(data);
-				}
-			});
-		}
-	},
-  "papa-Data is correctly parsed with steps when skipping empty lines": {
-		expected: [['A', 'b', 'c'], ['d', 'E', 'f']],
-		run: function(callback) {
-			var data = [];
-			Papa.parse('A,b,c\n\nd,E,f', {
-				skipEmptyLines: true,
-				step: function(results) {
-					data.push(results.data);
-				},
-				complete: function() {
-					callback(data);
-				}
-			});
-		}
-	},
-  "papa-Step is called with the contents of the row": {
-		expected: ['A', 'b', 'c'],
-		run: function(callback) {
-			Papa.parse('A,b,c', {
-				step: function(response) {
-					callback(response.data);
-				}
-			});
-		}
-	},
-  "papa-Step is called with the last cursor position": {
-		expected: [6, 12, 17],
-		run: function(callback) {
-			var updates = [];
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step exposes cursor for downloads": {
-		expected: [129,	287, 452, 595, 727, 865, 1031, 1209],
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step exposes cursor for chunked downloads": {
-		expected: [129,	287, 452, 595, 727, 865, 1031, 1209],
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step exposes cursor for workers": {
-		expected: [452, 452, 452, 865, 865, 865, 1209, 1209],
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				worker: true,
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Chunk is called for each chunk": {
-		expected: [3, 3, 2],
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				chunk: function(response) {
-					updates.push(response.data.length);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Chunk is called with cursor position": {
-		expected: [452, 865, 1209],
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				chunk: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Chunk functions can pause parsing": {
-		expected: [
-			[['A', 'b', 'c']]
-		],
-		run: function(callback) {
-			var updates = [];
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				chunkSize: 10,
-				chunk: function(response, handle) {
-					updates.push(response.data);
-					handle.pause();
-					callback(updates);
-				},
-				complete: function() {
-					callback(new Error('incorrect complete callback'));
-				}
-			});
-		}
-	},
-  "papa-Chunk functions can resume parsing": {
-		expected: [
-			[['A', 'b', 'c']],
-			[['d', 'E', 'f'], ['G', 'h', 'i']]
-		],
-		run: function(callback) {
-			var updates = [];
-			var handle = null;
-			var first = true;
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				chunkSize: 10,
-				chunk: function(response, h) {
-					updates.push(response.data);
-					if (!first) return;
-					handle = h;
-					handle.pause();
-					first = false;
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-			setTimeout(function() {
-				handle.resume();
-			}, 500);
-		}
-	},
-  "papa-Chunk functions can abort parsing": {
-		expected: [
-			[['A', 'b', 'c']]
-		],
-		run: function(callback) {
-			var updates = [];
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				chunkSize: 1,
-				chunk: function(response, handle) {
-					if (response.data.length) {
-						updates.push(response.data);
-						handle.abort();
-					}
-				},
-				complete: function(response) {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step exposes indexes for files": {
-		expected: [6, 12, 17],
-		disabled: !FILES_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(new File(['A,b,c\nd,E,f\nG,h,i'], 'sample.csv'), {
-				download: true,
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step exposes indexes for chunked files": {
-		expected: [6, 12, 17],
-		disabled: !FILES_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(new File(['A,b,c\nd,E,f\nG,h,i'], 'sample.csv'), {
-				chunkSize: 3,
-				step: function(response) {
-					updates.push(response.meta.cursor);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Quoted line breaks near chunk boundaries are handled": {
-		expected: [['A', 'B', 'C'], ['X', 'Y\n1\n2\n3', 'Z']],
-		disabled: !FILES_ENABLED,
-		run: function(callback) {
-			var updates = [];
-			Papa.parse(new File(['A,B,C\nX,"Y\n1\n2\n3",Z'], 'sample.csv'), {
-				chunkSize: 3,
-				step: function(response) {
-					updates.push(response.data);
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Step functions can abort parsing": {
-		expected: [['A', 'b', 'c']],
-		run: function(callback) {
-			var updates = [];
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				step: function(response, handle) {
-					updates.push(response.data);
-					handle.abort();
-					callback(updates);
-				},
-				chunkSize: 6
-			});
-		}
-	},
-  "papa-Complete is called after aborting": {
-		expected: true,
-		run: function(callback) {
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				step: function(response, handle) {
-					handle.abort();
-				},
-				chunkSize: 6,
-				complete: function(response) {
-					callback(response.meta.aborted);
-				}
-			});
-		}
-	},
-  "papa-Step functions can pause parsing": {
-		expected: [['A', 'b', 'c']],
-		run: function(callback) {
-			var updates = [];
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				step: function(response, handle) {
-					updates.push(response.data);
-					handle.pause();
-					callback(updates);
-				},
-				complete: function() {
-					callback('incorrect complete callback');
-				}
-			});
-		}
-	},
-  "papa-Step functions can resume parsing": {
-		expected: [['A', 'b', 'c'], ['d', 'E', 'f'], ['G', 'h', 'i']],
-		run: function(callback) {
-			var updates = [];
-			var handle = null;
-			var first = true;
-			Papa.parse('A,b,c\nd,E,f\nG,h,i', {
-				step: function(response, h) {
-					updates.push(response.data);
-					if (!first) return;
-					handle = h;
-					handle.pause();
-					first = false;
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-			setTimeout(function() {
-				handle.resume();
-			}, 500);
-		}
-	},
-  "papa-Step functions can abort workers": {
-		expected: 1,
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = 0;
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				worker: true,
-				download: true,
-				chunkSize: 500,
-				step: function(response, handle) {
-					updates++;
-					handle.abort();
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-beforeFirstChunk manipulates only first chunk": {
-		expected: 7,
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = 0;
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				beforeFirstChunk: function(chunk) {
-					return chunk.replace(/.*?\n/, '');
-				},
-				step: function(response) {
-					updates++;
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-First chunk not modified if beforeFirstChunk returns nothing": {
-		expected: 8,
-		disabled: !XHR_ENABLED,
-		run: function(callback) {
-			var updates = 0;
-			Papa.parse(BASE_PATH + "long-sample.csv", {
-				download: true,
-				chunkSize: 500,
-				beforeFirstChunk: function(chunk) {
-				},
-				step: function(response) {
-					updates++;
-				},
-				complete: function() {
-					callback(updates);
-				}
-			});
-		}
-	},
-  "papa-Should correctly guess custom delimiter when passed delimiters to guess.": {
-		expected: "~",
-		run: function(callback) {
-			var results = Papa.parse('"A"~"B"~"C"~"D"', {
-				delimitersToGuess: ['~', '@', '%']
-			});
-			callback(results.meta.delimiter);
-		}
-	},
-  "papa-Should still correctly guess default delimiters when delimiters to guess are not given.": {
-		expected: ",",
-		run: function(callback) {
-			var results = Papa.parse('"A","B","C","D"');
-			callback(results.meta.delimiter);
-		}
-	}
 */  
 }
