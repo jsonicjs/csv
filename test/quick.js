@@ -3,9 +3,11 @@ const { Jsonic, Debug } = require('@jsonic/jsonic-next')
 const { Csv } = require('..')
 
 
-const c0 = Jsonic.make()
-      .use(Debug,{trace:true})
-      .use(Csv,{comment:true,object:false,header:false})
+const tlog = []
+
+// const c0 = Jsonic.make()
+//       .use(Debug,{trace:true})
+//       .use(Csv,{comment:true,object:false,header:false})
 
 // const u0 = Jsonic.make()
 //       // .use(Debug,{trace:true})
@@ -13,9 +15,16 @@ const c0 = Jsonic.make()
 //         strict:false,
 //       })
 
-// const csv = Jsonic.make()
-//       // .use(Debug,{trace:true})
-//       .use(Csv, {})
+const csv = Jsonic.make()
+      .use(Debug,{trace:true})
+      .use(Csv, {
+        // line: {empty:true},
+        header: false,
+        object: false,
+        comment: true,
+      })
+// .sub({lex:(t)=>console.log(t)})
+      .sub({lex:(t)=>tlog.push(t)})
 
 // console.log(csv.options.tokenSet)
 // console.log(csv.internal().config.tokenSet)
@@ -81,19 +90,36 @@ const c0 = Jsonic.make()
 
 // console.log(c0(''))
 
-console.log(c0(`#foo
-#bar
-1,2
-#a
-#b
+// console.log(c0(`#foo
+// #bar
+// 1,2
+// #a
+// #b
 
 
-3,4
+// 3,4
 
-#c
+// #c
 
 
+// `))
+
+
+// console.log(csv(`a,b
+// A,B
+// #X
+
+// AA,BB`))
+
+console.log(csv(`
+#X
+#XX
+a,b
+#Y
+#YY
+A,B
+#Z
+#ZZ
 `))
 
-
-
+console.log(tlog)

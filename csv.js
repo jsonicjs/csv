@@ -6,6 +6,7 @@ exports.makeCsvStringMatcher = exports.Csv = void 0;
 // TODO: other delimiters, tab etc
 const jsonic_next_1 = require("@jsonic/jsonic-next");
 const Csv = (jsonic, options) => {
+    var _a;
     const strict = !!options.strict;
     const objres = !!options.object;
     const header = !!options.header;
@@ -13,6 +14,7 @@ const Csv = (jsonic, options) => {
     let trim = !!options.trim;
     let comment = !!options.comment;
     let number = !!options.number;
+    let record_empty = !!((_a = options.record) === null || _a === void 0 ? void 0 : _a.empty);
     if (strict) {
         jsonic.lex(makeCsvStringMatcher);
         jsonic.options({
@@ -50,6 +52,9 @@ const Csv = (jsonic, options) => {
             '#CL': null,
         };
     }
+    if (options.field.separation) {
+        token['#CA'] = options.field.separation;
+    }
     let VAL = jsonic.internal().config.tokenSet.val;
     let jsonicOptions = {
         rule: {
@@ -59,7 +64,13 @@ const Csv = (jsonic, options) => {
             token
         },
         tokenSet: {
-            ignore: strict ? [null, null, comment ? undefined : null] : [null, null],
+            // ignore: strict ? [null, null, comment ? undefined : null] : [null, null],
+            // See jsonic/src/defaults.ts; and util.deep merging
+            ignore: [
+                null,
+                null,
+                undefined, // Still ignore #CM comments
+            ]
         },
         number: {
             lex: number,
@@ -73,6 +84,11 @@ const Csv = (jsonic, options) => {
         lex: {
             emptyResult: [],
         },
+        line: {
+            single: record_empty,
+            chars: null == options.record.separators ? undefined : options.record.separators,
+            rowChars: null == options.record.separators ? undefined : options.record.separators,
+        },
         error: {
             csv_unexpected_field: 'unexpected field value: $fsrc'
         },
@@ -82,7 +98,9 @@ fields per row are expected.`,
         },
     };
     jsonic.options(jsonicOptions);
-    let { LN, CA, SP, ZZ, CM } = jsonic.token;
+    // console.log(jsonicOptions)
+    // console.log(jsonic.options.line)
+    let { LN, CA, SP, ZZ } = jsonic.token;
     jsonic.rule('csv', (rs) => {
         rs
             .bo((r, ctx) => {
@@ -90,7 +108,10 @@ fields per row are expected.`,
             stream && stream('start');
             r.node = [];
         })
-            .open({ p: 'record' })
+            .open([
+            !record_empty && { s: [LN], r: 'newline' },
+            { p: 'record' }
+        ])
             .ac(() => { (stream && stream('end')); });
         return rs;
     });
@@ -98,32 +119,47 @@ fields per row are expected.`,
         rs.close({ s: [LN], b: 1 }, { append: false }); // End list and record
         return rs;
     });
+    jsonic.rule('newline', (rs) => {
+        rs
+            .open([
+            { s: [LN, LN], r: 'newline' },
+            { s: [LN], r: 'newline' },
+            { s: [ZZ] },
+            { r: 'record' },
+        ])
+            .close([
+            { s: [LN, LN], r: 'newline' },
+            { s: [LN], r: 'newline' },
+            { s: [ZZ] },
+            { r: 'record' },
+        ]);
+    });
     jsonic.rule('record', (rs) => {
         rs
             .open([
-            {
-                s: [LN, ZZ],
-            },
-            {
-                s: [LN],
-                b: 1,
-                c: (r, ctx) => 0 === ctx.use.recordI && null == r.o0.ignored,
-            },
-            {
-                s: [LN],
-                r: 'record'
-            },
+            // {
+            //   s: [LN, ZZ],
+            // },
+            // {
+            //   s: [LN],
+            //   b: 1,
+            //   c: (r: Rule, ctx: Context) =>
+            //     0 === ctx.use.recordI && null == r.o0.ignored,
+            // },
+            // {
+            //   s: [LN],
+            //   r: 'record'
+            // },
             { p: 'list' },
         ])
             .close([
             { s: [ZZ] },
             { s: [LN, ZZ] },
-            { s: [LN], r: 'record' }
+            { s: [LN], r: record_empty ? 'record' : 'newline' },
         ])
             .bc((rule, ctx) => {
-            if (ZZ === rule.o1.tin)
-                return;
-            let fields = ctx.use.fields;
+            // if (ZZ === rule.o1.tin) return;
+            let fields = ctx.use.fields || options.field.names;
             // First line is fields
             if (0 === ctx.use.recordI && header) {
                 fields = ctx.use.fields =
@@ -133,10 +169,17 @@ fields per row are expected.`,
                 let record = rule.child.node || [];
                 if (objres) {
                     let obj = {};
-                    for (let i = 0; i < record.length; i++) {
-                        let field_name = header ? fields[i] : i;
-                        field_name = undefined === field_name ?
-                            options.field.nonameprefix + i : field_name;
+                    let i = 0;
+                    if (fields) {
+                        let fI = 0;
+                        for (; fI < fields.length; fI++) {
+                            obj[fields[fI]] = undefined === record[fI] ?
+                                options.field.empty : record[fI];
+                        }
+                        i = fI;
+                    }
+                    for (; i < record.length; i++) {
+                        let field_name = options.field.nonameprefix + i;
                         obj[field_name] = undefined === record[i] ?
                             options.field.empty : record[i];
                     }
@@ -163,6 +206,7 @@ fields per row are expected.`,
             .open([
             { s: [VAL, SP], b: 2, p: 'text' },
             { s: [SP], b: 1, p: 'text' },
+            { s: [LN], b: 1 },
         ], { append: false });
     });
     jsonic.rule('elem', (rs) => {
@@ -329,9 +373,23 @@ Csv.defaults = {
     // Parse standard CSV, ignoring embedded JSON. Default: false.
     // When true, changes some defaults, e.g. trim=>true 
     strict: true,
+    // Control field handling
     field: {
+        // Separator string
+        separation: null,
+        // Create numbered names for extra fields found in a record.
         nonameprefix: 'field~',
-        empty: ''
+        // Value to insert for empty fields.
+        empty: '',
+        // Predefined field names (string[]).
+        names: undefined,
+    },
+    // Control record handling.
+    record: {
+        // Separator characters (not string!)
+        separators: null,
+        // Allow empty lines to generate records.
+        empty: false
     }
 };
 //# sourceMappingURL=csv.js.map

@@ -10,30 +10,140 @@ const csv_1 = require("../csv");
 const Spectrum = require('csv-spectrum');
 const Fixtures = require('./csv-fixtures');
 describe('csv', () => {
-    test('line', async () => {
+    test('empty-records', async () => {
+        // ignored by default
         const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
         expect(jo('\n')).toEqual([]);
+        expect(jo('a\n1\n\n2\n3\n\n\n4\n'))
+            .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }]);
         const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
         expect(ja('\n')).toEqual([]);
+        expect(ja('a\n1\n\n2\n3\n\n\n4\n'))
+            .toEqual([['1'], ['2'], ['3'], ['4']]);
+        // start and end also ignored
+        expect(jo('\r\na,b\r\nA,B\r\n')).toEqual([{ a: 'A', b: 'B' }]);
+        expect(jo('\r\n\r\na,b\r\nA,B\r\n\r\n')).toEqual([{ a: 'A', b: 'B' }]);
+        expect(ja('\r\na,b\r\nA,B\r\n')).toEqual([['A', 'B']]);
+        expect(ja('\r\n\r\na,b\r\nA,B\r\n\r\n')).toEqual([['A', 'B']]);
+        // with option, empty creates record
+        const jon = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { record: { empty: true } });
+        expect(jon('\n')).toEqual([]);
+        expect(jon('a\n1\n\n2\n3\n\n\n4\n'))
+            .toEqual([
+            { a: '1' }, { a: '' }, { a: '2' }, { a: '3' },
+            { a: '' }, { a: '' }, { a: '4' }
+        ]);
+        // with comments
+        const joc = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { comment: true });
+        // console.log(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
+        expect(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
+            .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }]);
+        const jocn = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { comment: true, record: { empty: true } });
+        expect(jocn('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
+            .toEqual([
+            { a: '1' },
+            { a: '' },
+            { a: '2' },
+            { a: '3' },
+            { a: '' },
+            { a: '' },
+            { a: '4' }
+        ]);
+    });
+    test('header', async () => {
+        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        expect(jo('\n')).toEqual([]);
+        expect(jo('\na,b\nA,B')).toEqual([{ a: 'A', b: 'B' }]);
+        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        expect(ja('\n')).toEqual([]);
+        expect(ja('\na,b\nA,B')).toEqual([['A', 'B']]);
+        const jon = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { header: false });
+        expect(jon('\n')).toEqual([]);
+        expect(jon('\na,b\nA,B')).toEqual([
+            {
+                "field~0": "a",
+                "field~1": "b",
+            },
+            {
+                "field~0": "A",
+                "field~1": "B",
+            },
+        ]);
+        const jan = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { header: false, object: false });
+        expect(jan('\n')).toEqual([]);
+        expect(jan('\na,b\nA,B')).toEqual([
+            [
+                "a",
+                "b",
+            ],
+            [
+                "A",
+                "B",
+            ],
+        ]);
+        const jonf = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+            header: false,
+            field: { names: ['a', 'b'] },
+        });
+        expect(jonf('\n')).toEqual([]);
+        expect(jonf('\na,b\nA,B')).toEqual([
+            {
+                "a": "a",
+                "b": "b",
+            },
+            {
+                "a": "A",
+                "b": "B",
+            },
+        ]);
     });
     test('comma', async () => {
         const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        expect(jo('\na')).toEqual([]);
         expect(jo('a\n1,')).toEqual([{ a: '1', 'field~1': '' }]);
         expect(jo('a\n,1')).toEqual([{ a: '', 'field~1': '1' }]);
         expect(jo('a,b\n1,2,')).toEqual([{ a: '1', b: '2', 'field~2': '' }]);
         expect(jo('a,b\n,1,2')).toEqual([{ a: '', b: '1', 'field~2': '2' }]);
-        expect(jo('\n1')).toEqual([{ 'field~0': '1' }]);
         expect(jo('a\n1,\n')).toEqual([{ a: '1', 'field~1': '' }]);
         expect(jo('a\n,1\n')).toEqual([{ a: '', 'field~1': '1' }]);
         expect(jo('a,b\n1,2,\n')).toEqual([{ a: '1', b: '2', 'field~2': '' }]);
         expect(jo('a,b\n,1,2\n')).toEqual([{ a: '', b: '1', 'field~2': '2' }]);
-        expect(jo('\n1\n')).toEqual([{ 'field~0': '1' }]);
+        expect(jo('\na\n')).toEqual([]);
         const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
         expect(ja('a\n1,')).toEqual([['1', '']]);
         expect(ja('a\n,1')).toEqual([['', '1']]);
         expect(ja('a,b\n1,2,')).toEqual([['1', '2', '']]);
         expect(ja('a,b\n,1,2')).toEqual([['', '1', '2']]);
-        expect(ja('\n1')).toEqual([['1']]);
+        expect(ja('\n1')).toEqual([]);
+    });
+    test('separators', async () => {
+        const jd = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+            field: {
+                separation: '|'
+            }
+        });
+        expect(jd('a|b|c\nA|B|C\nAA|BB|CC')).toEqual([
+            { a: 'A', b: 'B', c: 'C' },
+            { a: 'AA', b: 'BB', c: 'CC' },
+        ]);
+        const jD = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+            field: {
+                separation: '~~'
+            }
+        });
+        expect(jD('a~~b~~c\nA~~B~~C\nAA~~BB~~CC')).toEqual([
+            { a: 'A', b: 'B', c: 'C' },
+            { a: 'AA', b: 'BB', c: 'CC' },
+        ]);
+        const jn = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+            record: {
+                separators: '%'
+            }
+        });
+        expect(jn('a,b,c%A,B,C%AA,BB,CC')).toEqual([
+            { a: 'A', b: 'B', c: 'C' },
+            { a: 'AA', b: 'BB', c: 'CC' },
+        ]);
     });
     test('double-quote', async () => {
         const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);

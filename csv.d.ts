@@ -8,8 +8,14 @@ declare type CsvOptions = {
     stream: null | ((what: string, record?: Record<string, any> | Error) => void);
     strict: boolean;
     field: {
+        separation: null | string;
         nonameprefix: string;
         empty: any;
+        names: undefined | string[];
+    };
+    record: {
+        separators: null | string;
+        empty: boolean;
     };
 };
 declare const Csv: Plugin;
