@@ -232,8 +232,7 @@ fields per row are expected.`,
 
         // First line is fields if options.header=true
         if (0 === ctx.use.recordI && header) {
-          fields = ctx.use.fields =
-            undefined === rule.child.node ? [] : rule.child.node
+          ctx.use.fields = undefined === rule.child.node ? [] : rule.child.node
         }
 
         // A normal record line.

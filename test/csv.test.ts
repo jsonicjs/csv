@@ -2,7 +2,7 @@
 
 import Util from 'util'
 
-import { Jsonic, Rule } from '@jsonic/jsonic-next'
+import { Jsonic } from '@jsonic/jsonic-next'
 import { Csv } from '../csv'
 
 const Spectrum = require('csv-spectrum')

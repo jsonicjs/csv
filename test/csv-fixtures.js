@@ -723,17 +723,17 @@ module.exports = {
     ],
   },
 
-  'papa-Empty input string': {
+  'papa-Empty input string 2': {
     opt: { header: false, object: false },
     raw: '',
     out: [],
   },
-  'papa-Input is just the delimiter (2 empty fields)': {
+  'papa-Input is just the delimiter (2 empty fields) 2': {
     opt: { header: false, object: false },
     raw: ',',
     out: [['', '']],
   },
-  'papa-Input is just a string (a single field)': {
+  'papa-Input is just a string (a single field) 2': {
     opt: { header: false, object: false },
     raw: 'Abc def',
     out: [['Abc def']],
