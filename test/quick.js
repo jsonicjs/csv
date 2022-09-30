@@ -1,7 +1,5 @@
-
 const { Jsonic, Debug } = require('@jsonic/jsonic-next')
 const { Csv } = require('..')
-
 
 const tlog = []
 
@@ -16,18 +14,18 @@ const tlog = []
 //       })
 
 const csv = Jsonic.make()
-      .use(Debug,{trace:true})
-      .use(Csv, {
-        // line: {empty:true},
-        // header: false,
-        // object: false,
-        // trim: true,
-        // value: true,
-        // comment: true,
-        // record: { empty: true }
-      })
-// .sub({lex:(t)=>console.log(t)})
-      .sub({lex:(t)=>tlog.push(t)})
+  .use(Debug, { trace: true })
+  .use(Csv, {
+    // line: {empty:true},
+    // header: false,
+    // object: false,
+    // trim: true,
+    // value: true,
+    // comment: true,
+    // record: { empty: true }
+  })
+  // .sub({lex:(t)=>console.log(t)})
+  .sub({ lex: (t) => tlog.push(t) })
 
 // console.log(csv.options.tokenSet)
 console.log(csv.internal().config.lex.match)
@@ -38,22 +36,18 @@ console.log(csv.internal().config.lex.match)
 // 3 3, "a"
 // `,{xlog:-1}))
 
-
 // console.log(csv(`a,b
 // 1,2
 // 3,"x""y"
 // 4,5
 // `,{xlog:-1}))
 
-
 // console.log(csv(`a,b
-// 1, 2 3 
-// 4,  5  6  
-// 7,	8		9	
-// 10, 11 12 13 
+// 1, 2 3
+// 4,  5  6
+// 7,	8		9
+// 10, 11 12 13
 // `,{xlog:-1}))
-
-
 
 // const u0 = Jsonic.make()
 //       .use(Debug,{trace:true})
@@ -68,11 +62,9 @@ console.log(csv.internal().config.lex.match)
 // null,'Q\\r\\nA',1e2
 // `),{depth:null})
 
-
-
 // console.log(c0(`a,b,c
 // 1 , 2 , 3
-//  11 ,  22   , 33 
+//  11 ,  22   , 33
 // 4\t,\t5\t,\t6
 // \t44\t,\t\t55\t\t\t,\t6\t
 // `))
@@ -87,7 +79,6 @@ console.log(csv.internal().config.lex.match)
 // console.log(u0(`a
 //  b `))
 
-
 // console.log(c0(`
 // 1`))
 
@@ -99,14 +90,11 @@ console.log(csv.internal().config.lex.match)
 // #a
 // #b
 
-
 // 3,4
 
 // #c
 
-
 // `))
-
 
 // console.log(csv(`a,b
 // A,B

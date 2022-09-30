@@ -26,5 +26,5 @@ declare type CsvOptions = {
 };
 declare const Csv: Plugin;
 declare function buildCsvStringMatcher(csvopts: CsvOptions): (cfg: Config, _opts: Options) => (lex: Lex) => import("@jsonic/jsonic-next").Token | undefined;
-export { Csv, buildCsvStringMatcher, };
+export { Csv, buildCsvStringMatcher };
 export type { CsvOptions };

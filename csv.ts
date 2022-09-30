@@ -3,7 +3,6 @@
 // NOTE: Good example of use case for `r` control in open rule, where
 // close state only gets called on last rule.
 
-
 // Import Jsonic types used by plugins.
 import {
   Jsonic,
@@ -16,7 +15,6 @@ import {
   Lex,
   EMPTY,
 } from '@jsonic/jsonic-next'
-
 
 // See defaults below for commentary.
 type CsvOptions = {
@@ -45,10 +43,8 @@ type CsvOptions = {
   }
 }
 
-
 // Plugin implementation.
 const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
-
   // Normalize boolean options.
   const strict = !!options.strict
   const objres = !!options.object
@@ -94,8 +90,7 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     parser.start = (...args: any[]) => {
       try {
         return origStart(...args)
-      }
-      catch (e: any) {
+      } catch (e: any) {
         stream('error', e)
       }
     }
@@ -103,7 +98,6 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
 
   let token: Record<string, any> = {}
   if (strict) {
-
     // Disable JSON structure tokens
     token = {
       '#OB': null,
@@ -122,14 +116,13 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
   // Usually [#TX, #SP, #NR, #VL]
   let VAL = jsonic.internal().config.tokenSet.val
 
-
   // Jsonic option overrides.
   let jsonicOptions: any = {
     rule: {
       start: 'csv',
     },
     fixed: {
-      token
+      token,
     },
     tokenSet: {
       // See jsonic/src/defaults.ts; and util.deep merging
@@ -137,7 +130,7 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
         strict ? null : undefined, // Handle #SP space
         null, // Handle #LN newlines
         undefined, // Still ignore #CM comments
-      ]
+      ],
     },
     number: {
       lex: opt_number,
@@ -154,20 +147,22 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     line: {
       single: record_empty,
       chars:
-        null == options.record.separators ? undefined : options.record.separators,
+        null == options.record.separators
+          ? undefined
+          : options.record.separators,
       rowChars:
-        null == options.record.separators ? undefined : options.record.separators,
+        null == options.record.separators
+          ? undefined
+          : options.record.separators,
     },
     error: {
       csv_extra_field: 'unexpected extra field value: $fsrc',
-      csv_missing_field: 'missing field'
+      csv_missing_field: 'missing field',
     },
     hint: {
-      csv_extra_field:
-        `Row $row has too many fields (the first of which is: $fsrc). Only $len
+      csv_extra_field: `Row $row has too many fields (the first of which is: $fsrc). Only $len
 fields per row are expected.`,
-      csv_missing_field:
-        `Row $row has too few fields. $len fields per row are expected.`,
+      csv_missing_field: `Row $row has too few fields. $len fields per row are expected.`,
     },
   }
 
@@ -175,15 +170,13 @@ fields per row are expected.`,
 
   let { LN, CA, SP, ZZ } = jsonic.token
 
-
   // Starting rule.
   jsonic.rule('csv', (rs: RuleSpec): RuleSpec => {
-    rs
-      .bo((r: Rule, ctx: Context) => {
-        ctx.use.recordI = 0 // Record counter.
-        stream && stream('start') // If streaming, send 'start' event.
-        r.node = [] // Top level list of records - the result!
-      })
+    rs.bo((r: Rule, ctx: Context) => {
+      ctx.use.recordI = 0 // Record counter.
+      stream && stream('start') // If streaming, send 'start' event.
+      r.node = [] // Top level list of records - the result!
+    })
       .open([
         // End immediately if EOF
         { s: [ZZ] },
@@ -192,40 +185,37 @@ fields per row are expected.`,
         !record_empty && { s: [LN], r: 'newline' },
 
         // Look for the first record.
-        { p: 'record' }
+        { p: 'record' },
       ])
-      .ac(() => { (stream && stream('end')) })
+      .ac(() => {
+        stream && stream('end')
+      })
 
     return rs
   })
 
-
   // Ignore empty lines. Keep consuming LN until there's a record or EOF.
   jsonic.rule('newline', (rs: RuleSpec) => {
-    rs
-      .open([
-        // NOTE: r in open means no close except final
-        { s: [LN, LN], r: 'newline' },
-        { s: [LN], r: 'newline' },
-        { s: [ZZ] },
-        { r: 'record' },
-      ])
-      .close([
-        { s: [LN, LN], r: 'newline' },
-        { s: [LN], r: 'newline' },
-        { s: [ZZ] },
-        { r: 'record' },
-      ])
+    rs.open([
+      // NOTE: r in open means no close except final
+      { s: [LN, LN], r: 'newline' },
+      { s: [LN], r: 'newline' },
+      { s: [ZZ] },
+      { r: 'record' },
+    ]).close([
+      { s: [LN, LN], r: 'newline' },
+      { s: [LN], r: 'newline' },
+      { s: [ZZ] },
+      { r: 'record' },
+    ])
   })
-
 
   // A CSV record line.
   jsonic.rule('record', (rs: RuleSpec) => {
-    rs
-      .open([
-        // Reuse Jsonic list rule
-        { p: 'list' },
-      ])
+    rs.open([
+      // Reuse Jsonic list rule
+      { p: 'list' },
+    ])
       .close([
         // EOF also ends CSV
         { s: [ZZ] },
@@ -237,7 +227,6 @@ fields per row are expected.`,
         { s: [LN], r: record_empty ? 'record' : 'newline' },
       ])
       .bc((rule: Rule, ctx: Context) => {
-
         // Record field names
         let fields: string[] = ctx.use.fields || options.field.names
 
@@ -259,25 +248,27 @@ fields per row are expected.`,
             if (fields) {
               if (options.field.exact) {
                 if (record.length !== fields.length) {
-                  return ctx.t0.bad(record.length > fields.length ?
-                    'csv_extra_field' : 'csv_missing_field')
+                  return ctx.t0.bad(
+                    record.length > fields.length
+                      ? 'csv_extra_field'
+                      : 'csv_missing_field'
+                  )
                 }
               }
 
               let fI = 0
               for (; fI < fields.length; fI++) {
-                obj[fields[fI]] = undefined === record[fI] ?
-                  options.field.empty : record[fI]
+                obj[fields[fI]] =
+                  undefined === record[fI] ? options.field.empty : record[fI]
               }
               i = fI
-
             }
 
             // Handle extra unnamed fields.
             for (; i < record.length; i++) {
               let field_name = options.field.nonameprefix + i
-              obj[field_name] = undefined === record[i] ?
-                options.field.empty : record[i]
+              obj[field_name] =
+                undefined === record[i] ? options.field.empty : record[i]
             }
 
             record = obj
@@ -286,14 +277,14 @@ fields per row are expected.`,
           // Return records as arrays.
           else {
             for (let i = 0; i < record.length; i++) {
-              record[i] = undefined === record[i] ? options.field.empty : record[i]
+              record[i] =
+                undefined === record[i] ? options.field.empty : record[i]
             }
           }
 
           if (stream) {
             stream('record', record)
-          }
-          else {
+          } else {
             rule.node.push(record)
           }
         }
@@ -303,106 +294,123 @@ fields per row are expected.`,
     return rs
   })
 
-
   jsonic.rule('list', (rs: RuleSpec) => {
-    return rs
-      .open([
-        // If not ignoring empty fields, don't consume LN used to close empty record.
-        { s: [LN], b: 1 }
-      ])
+    return rs.open([
+      // If not ignoring empty fields, don't consume LN used to close empty record.
+      { s: [LN], b: 1 },
+    ])
   })
-
 
   jsonic.rule('elem', (rs: RuleSpec) => {
     return rs
-      .open([
-        // An empty element
-        { s: [CA], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
-      ], { append: false })
+      .open(
+        [
+          // An empty element
+          { s: [CA], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
+        ],
+        { append: false }
+      )
 
-      .close([
-        // An empty element at the end of the line
-        { s: [CA, LN], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
+      .close(
+        [
+          // An empty element at the end of the line
+          {
+            s: [CA, LN],
+            b: 1,
+            a: (r: Rule) => r.node.push(options.field.empty),
+          },
 
-        // LN ends record
-        { s: [LN], b: 1 },
-      ], { append: false })
+          // LN ends record
+          { s: [LN], b: 1 },
+        ],
+        { append: false }
+      )
   })
 
-
   jsonic.rule('val', (rs: RuleSpec) => {
-    return rs
-      .open([
-
+    return rs.open(
+      [
         // Handle text and space concatentation
         { s: [VAL, SP], b: 2, p: 'text' },
         { s: [SP], b: 1, p: 'text' },
 
         // LN ends record
         { s: [LN], b: 1 },
-      ], { append: false })
+      ],
+      { append: false }
+    )
   })
-
 
   // Handle text and space concatentation
   // NOTE: trim and string are complications.
   jsonic.rule('text', (rs: RuleSpec) => {
-    return rs
+    return (
+      rs
 
-      // Space within non-space is preserved as part of text value.
-      .open([
-        {
-          // NOTE: r in open means no close except final
-          s: [VAL, SP], b: 1, r: 'text', n: { text: 1 },
-          g: 'csv,space,follows',
-          a: (r: Rule) => {
-            // Keep appending space to prev node
-            let v = (1 === r.n.text ? r : r.prev)
-            r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.val
-          }
-        },
-        {
-          s: [SP, VAL], r: 'text', n: { text: 1 },
-          g: 'csv,space,leads',
-          a: (r: Rule) => {
-            // Inner space
-            let v = (1 === r.n.text ? r : r.prev)
-            r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
-              (2 <= r.n.text || !trim ? r.o0.src : '') +
-              r.o1.src
-          }
-        },
-        {
-          s: [SP, [CA, LN, ZZ]], b: 1, n: { text: 1 },
-          g: 'csv,end',
-          a: (r: Rule) => {
-            // Final space
-            let v = (1 === r.n.text ? r : r.prev)
-            r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
-              (!trim ? r.o0.src : '')
+        // Space within non-space is preserved as part of text value.
+        .open([
+          {
+            // NOTE: r in open means no close except final
+            s: [VAL, SP],
+            b: 1,
+            r: 'text',
+            n: { text: 1 },
+            g: 'csv,space,follows',
+            a: (r: Rule) => {
+              // Keep appending space to prev node
+              let v = 1 === r.n.text ? r : r.prev
+              r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.val
+            },
           },
-        },
-        {
-          s: [SP], n: { text: 1 },
-          g: 'csv,space',
-          a: (r: Rule) => {
-            if (strict) {
-              let v = (1 === r.n.text ? r : r.prev)
-              r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
-                (!trim ? r.o0.src : '')
-            }
+          {
+            s: [SP, VAL],
+            r: 'text',
+            n: { text: 1 },
+            g: 'csv,space,leads',
+            a: (r: Rule) => {
+              // Inner space
+              let v = 1 === r.n.text ? r : r.prev
+              r.node = v.node =
+                (1 === r.n.text ? '' : r.prev.node) +
+                (2 <= r.n.text || !trim ? r.o0.src : '') +
+                r.o1.src
+            },
           },
-          p: strict ? undefined : 'val'
-        },
+          {
+            s: [SP, [CA, LN, ZZ]],
+            b: 1,
+            n: { text: 1 },
+            g: 'csv,end',
+            a: (r: Rule) => {
+              // Final space
+              let v = 1 === r.n.text ? r : r.prev
+              r.node = v.node =
+                (1 === r.n.text ? '' : r.prev.node) + (!trim ? r.o0.src : '')
+            },
+          },
+          {
+            s: [SP],
+            n: { text: 1 },
+            g: 'csv,space',
+            a: (r: Rule) => {
+              if (strict) {
+                let v = 1 === r.n.text ? r : r.prev
+                r.node = v.node =
+                  (1 === r.n.text ? '' : r.prev.node) + (!trim ? r.o0.src : '')
+              }
+            },
+            p: strict ? undefined : 'val',
+          },
 
-        // Accept anything after text.
-        {},
-      ])
+          // Accept anything after text.
+          {},
+        ])
 
-      // Close is called on final rule - set parent val node
-      .bc((r: Rule) => {
-        r.parent.node = undefined === r.child.node ? r.node : r.child.node
-      })
+        // Close is called on final rule - set parent val node
+        .bc((r: Rule) => {
+          r.parent.node = undefined === r.child.node ? r.node : r.child.node
+        })
+    )
   })
 }
 
@@ -439,8 +447,7 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
 
             if (q === src[sI]) {
               s.push(q)
-            }
-            else {
+            } else {
               break // String finished.
             }
           }
@@ -453,11 +460,7 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
             let qc = q.charCodeAt(0)
             let cc = src.charCodeAt(sI)
 
-            while (
-              sI < srclen &&
-              32 <= cc &&
-              qc !== cc
-            ) {
+            while (sI < srclen && 32 <= cc && qc !== cc) {
               cc = src.charCodeAt(++sI)
               cI++
             }
@@ -470,13 +473,11 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
 
               cI = 1
               s.push(src.substring(bI, sI + 1))
-            }
-            else if (cc < 32) {
+            } else if (cc < 32) {
               pnt.sI = sI
               pnt.cI = cI
               return lex.bad('unprintable', sI, sI + 1)
-            }
-            else {
+            } else {
               s.push(src.substring(bI, sI))
               sI--
             }
@@ -504,7 +505,6 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
   }
 }
 
-
 // Default option values.
 Csv.defaults = {
   // Trim surrounding space. Default: false (!strict=>true)
@@ -529,12 +529,11 @@ Csv.defaults = {
   stream: null,
 
   // Parse standard CSV, ignoring embedded JSON. Default: false.
-  // When true, changes some defaults, e.g. trim=>true 
+  // When true, changes some defaults, e.g. trim=>true
   strict: true,
 
   // Control field handling
   field: {
-
     // Separator string
     separation: null,
 
@@ -553,30 +552,23 @@ Csv.defaults = {
 
   // Control record handling.
   record: {
-
     // Separator characters (not string!)
     separators: null,
 
     // Allow empty lines to generate records.
-    empty: false
+    empty: false,
   },
 
   // Control string handling.
   string: {
-
     // Quote character for CSV-style strings.
     quote: '"',
 
     // If false, use Jsonic-style strings.
     csv: null,
-  }
-
+  },
 } as CsvOptions
 
-
-export {
-  Csv,
-  buildCsvStringMatcher,
-}
+export { Csv, buildCsvStringMatcher }
 
 export type { CsvOptions }
