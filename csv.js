@@ -67,7 +67,7 @@ const Csv = (jsonic, options) => {
             // ignore: strict ? [null, null, comment ? undefined : null] : [null, null],
             // See jsonic/src/defaults.ts; and util.deep merging
             ignore: [
-                null,
+                strict ? null : undefined,
                 null,
                 undefined, // Still ignore #CM comments
             ]
@@ -98,8 +98,6 @@ fields per row are expected.`,
         },
     };
     jsonic.options(jsonicOptions);
-    // console.log(jsonicOptions)
-    // console.log(jsonic.options.line)
     let { LN, CA, SP, ZZ } = jsonic.token;
     jsonic.rule('csv', (rs) => {
         rs
@@ -109,14 +107,11 @@ fields per row are expected.`,
             r.node = [];
         })
             .open([
+            { s: [ZZ] },
             !record_empty && { s: [LN], r: 'newline' },
             { p: 'record' }
         ])
             .ac(() => { (stream && stream('end')); });
-        return rs;
-    });
-    jsonic.rule('elem', (rs) => {
-        rs.close({ s: [LN], b: 1 }, { append: false }); // End list and record
         return rs;
     });
     jsonic.rule('newline', (rs) => {
@@ -150,6 +145,7 @@ fields per row are expected.`,
             //   s: [LN],
             //   r: 'record'
             // },
+            // { s: [LN] },
             { p: 'list' },
         ])
             .close([
@@ -201,13 +197,9 @@ fields per row are expected.`,
         });
         return rs;
     });
-    jsonic.rule('val', (rs) => {
+    jsonic.rule('list', (rs) => {
         return rs
-            .open([
-            { s: [VAL, SP], b: 2, p: 'text' },
-            { s: [SP], b: 1, p: 'text' },
-            { s: [LN], b: 1 },
-        ], { append: false });
+            .open([{ s: [LN], b: 1 }]);
     });
     jsonic.rule('elem', (rs) => {
         return rs
@@ -216,6 +208,15 @@ fields per row are expected.`,
         ], { append: false })
             .close([
             { s: [CA, LN], b: 1, a: (r) => r.node.push(options.field.empty) },
+            { s: [LN], b: 1 },
+        ], { append: false });
+    });
+    jsonic.rule('val', (rs) => {
+        return rs
+            .open([
+            { s: [VAL, SP], b: 2, p: 'text' },
+            { s: [SP], b: 1, p: 'text' },
+            { s: [LN], b: 1 },
         ], { append: false });
     });
     jsonic.rule('text', (rs) => {
@@ -242,7 +243,6 @@ fields per row are expected.`,
                     r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
                         (2 <= r.n.text || !trim ? r.o0.src : '') +
                         r.o1.src;
-                    // console.log('TEXT BB', v.node)
                 }
             },
             {
@@ -271,11 +271,6 @@ fields per row are expected.`,
         ])
             // Close is called on final rule - set parent val node
             .bc((r) => {
-            // console.log('TEXT BC',
-            // r.parent + '', r.parent.node,
-            //   r + '', r.node,
-            //   r.child + '', r.child.node)
-            // r.parent.node = 'val' === r.child.name ? r.child.node : r.node
             r.parent.node = undefined === r.child.node ? r.node : r.child.node;
         });
     });
@@ -298,14 +293,12 @@ function makeCsvStringMatcher(cfg, _opts) {
             for (sI; sI < srclen; sI++) {
                 cI++;
                 let c = src[sI];
-                // console.log(100, sI, c, s)
                 // Quote char.
                 if (q === c) {
                     sI++;
                     cI++;
                     if (q === src[sI]) {
                         s.push(q);
-                        // console.log(300, sI, src[sI], s)
                     }
                     else {
                         break; // String finished.
@@ -339,7 +332,6 @@ function makeCsvStringMatcher(cfg, _opts) {
                     else {
                         s.push(src.substring(bI, sI));
                         sI--;
-                        // console.log(800, sI, s)
                     }
                 }
             }
@@ -348,7 +340,6 @@ function makeCsvStringMatcher(cfg, _opts) {
                 return lex.bad('unterminated_string', qI, sI);
             }
             const tkn = lex.token('#ST', s.join(jsonic_next_1.EMPTY), src.substring(pnt.sI, sI), pnt);
-            // console.log('TKN', tkn)
             pnt.sI = sI;
             pnt.rI = rI;
             pnt.cI = cI;

@@ -21,7 +21,8 @@ const csv = Jsonic.make()
         // line: {empty:true},
         header: false,
         object: false,
-        comment: true,
+        // comment: true,
+        record: { empty: true }
       })
 // .sub({lex:(t)=>console.log(t)})
       .sub({lex:(t)=>tlog.push(t)})
@@ -111,15 +112,17 @@ const csv = Jsonic.make()
 
 // AA,BB`))
 
-console.log(csv(`
-#X
-#XX
-a,b
-#Y
-#YY
-A,B
-#Z
-#ZZ
-`))
+// console.log(csv(`
+// #X
+// #XX
+// a,b
+// #Y
+// #YY
+// A,B
+// #Z
+// #ZZ
+// `))
+
+console.log(csv('\n'))
 
 console.log(tlog)

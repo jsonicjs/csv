@@ -317,33 +317,43 @@ module.exports = {
     raw: '#comment1\n#comment2\n#comment3',
     out: [],
   },
-  // "papa-Comment with non-default character": {
-  //   opt: { header: false, object: false },
-  //   raw: 'a,b,c\n!Comment goes here\nd,e,f',
-  //   config: { comments: '!' },
-  //   out: [['a', 'b', 'c'], ['d', 'e', 'f']],
-  // },
+  "papa-Comment with non-default character": {
+    make: (Jsonic)=>Jsonic.make({comment:{
+      marker:[{start:'!'}]
+    }}),
+    opt: { header: false, object: false, comment: true },
+    raw: 'a,b,c\n!Comment goes here\nd,e,f',
+    out: [['a', 'b', 'c'], ['d', 'e', 'f']],
+  },
   "papa-Bad comments value specified": {
     opt: { header: false, object: false },
     raw: 'a,b,c\n5comment\nd,e,f',
     out: [['a', 'b', 'c'], ['5comment'], ['d', 'e', 'f']],
   },
-  // "papa-Multi-character comment string": {
-  //   opt: { header: false, object: false },
-  //   raw: 'a,b,c\n=N(Comment)\nd,e,f',
-  //       	config: { comments: "=N(" },
-  //   out: [['a', 'b', 'c'], ['d', 'e', 'f']],
-  // },
-  // "papa-Input with only a commented line": {
-  //   opt: { header: false, object: false, comment: true },
-  //   raw: '#commented line',
-  //   out: [],
-  // },
+  "papa-Multi-character comment string": {
+    make: (Jsonic)=>Jsonic.make({comment:{
+      marker:[{start:'=N('}]
+    }}),
+    opt: { header: false, object: false, comment: true },
+    raw: 'a,b,c\n=N(Comment)\nd,e,f',
+    out: [['a', 'b', 'c'], ['d', 'e', 'f']],
+  },
+  "papa-Input with only a commented line": {
+    opt: { header: false, object: false, comment: true },
+    raw: '#commented line',
+    out: [],
+  },
+  // REVIEW: disagree, output should be []
   // "papa-Input with only a commented line and blank line after": {
   //   opt: { header: false, object: false, comment: true },
   //   raw: '#commented line\n',
   //   out: [['']],
   // },
+  "papa-jsonic-Input with only a commented line and blank line after": {
+    opt: { header: false, object: false, comment: true },
+    raw: '#commented line\n',
+    out: [],
+  },
   "papa-Input with only a commented line: without comments enabled": {
     opt: { header: false, object: false },
     raw: '#commented line',
@@ -359,11 +369,17 @@ module.exports = {
     raw: 'a\nb\nc\nd\ne',
     out: [['a'], ['b'], ['c'], ['d'], ['e']],
   },
+  // REVIEW: disagree, empty lines (without header) should be []
   // "papa-One column input with empty fields": {
   //   opt: { header: false, object: false },
   //   raw: 'a\nb\n\n\nc\nd\ne\n',
   //   out: [['a'], ['b'], [''], [''], ['c'], ['d'], ['e'], ['']],
   // },
+  "papa-jsonic-One column input with empty fields": {
+    opt: { header: false, object: false, record: { empty: true } },
+    raw: 'a\nb\n\n\nc\nd\ne\n',
+    out: [['a'], ['b'], [], [], ['c'], ['d'], ['e']],
+  },
   "papa-Fast mode: basic": {
     opt: { header: false, object: false },
     raw: 'a,b,c\nd,e,f',

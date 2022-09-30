@@ -237,6 +237,7 @@ describe('csv', () => {
         const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { strict: false });
         let d0 = j(`a,b,c
 true,[1,2],{x:{y:"q\\"w"}}
+ x , 'y\\'y', "z\\"z"
 `);
         expect(d0).toEqual([
             {
@@ -251,6 +252,11 @@ true,[1,2],{x:{y:"q\\"w"}}
                     },
                 },
             },
+            {
+                a: 'x',
+                b: 'y\'y',
+                c: 'z"z'
+            }
         ]);
         expect(() => j('a\n{x:1}y')).toThrow('unexpected');
     });
@@ -275,7 +281,8 @@ true,[1,2],{x:{y:"q\\"w"}}
             try {
                 let parser = csv;
                 if (spec.opt) {
-                    parser = jsonic_next_1.Jsonic.make().use(csv_1.Csv, spec.opt);
+                    let j = spec.make ? spec.make(jsonic_next_1.Jsonic) : jsonic_next_1.Jsonic.make();
+                    parser = j.use(csv_1.Csv, spec.opt);
                 }
                 let raw = null != spec.rawref ? Fixtures[spec.rawref].raw : spec.raw;
                 let out = parser(raw);
