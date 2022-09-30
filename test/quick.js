@@ -16,13 +16,13 @@ const tlog = []
 //       })
 
 const csv = Jsonic.make()
-      // .use(Debug,{trace:true})
+      .use(Debug,{trace:true})
       .use(Csv, {
         // line: {empty:true},
-        header: false,
-        object: false,
-        trim: true,
-        value: true,
+        // header: false,
+        // object: false,
+        // trim: true,
+        // value: true,
         // comment: true,
         // record: { empty: true }
       })
@@ -30,7 +30,7 @@ const csv = Jsonic.make()
       .sub({lex:(t)=>tlog.push(t)})
 
 // console.log(csv.options.tokenSet)
-console.log(csv.internal().config.value)
+console.log(csv.internal().config.lex.match)
 
 // console.log(csv(`a,b
 // 1, 2
@@ -127,8 +127,8 @@ console.log(csv.internal().config.value)
 
 // console.log(csv('\n'))
 
-// console.log(csv('A,"B" '))
+console.log(csv('a,b\nA,"""B"'))
 
-console.log(csv('true'))
+// console.log(csv('true'))
 
 console.log(tlog)
