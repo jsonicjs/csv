@@ -1,10 +1,10 @@
 /* Copyright (c) 2021-2022 Richard Rodger, MIT License */
 
-// NOTE: Good example of use case for `r` control in open rule.
+// NOTE: Good example of use case for `r` control in open rule, where
+// close state only gets called on last rule.
 
 
-// TODO: other delimiters, tab etc
-
+// Import Jsonic types used by plugins.
 import {
   Jsonic,
   Rule,
@@ -17,6 +17,8 @@ import {
   EMPTY,
 } from '@jsonic/jsonic-next'
 
+
+// See defaults below for commentary.
 type CsvOptions = {
   trim: boolean | null
   comment: boolean | null
@@ -44,20 +46,24 @@ type CsvOptions = {
 }
 
 
-
-
+// Plugin implementation.
 const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
+
+  // Normalize boolean options.
   const strict = !!options.strict
   const objres = !!options.object
   const header = !!options.header
-  const stream = options.stream
 
+  // These may be changed below by superior options.
   let trim = !!options.trim
   let comment = !!options.comment
   let opt_number = !!options.number
   let opt_value = !!options.value
   let record_empty = !!options.record?.empty
 
+  const stream = options.stream
+
+  // In strict mode, Jsonic field content is not parsed.
   if (strict) {
     if (false !== options.string.csv) {
       jsonic.lex(buildCsvStringMatcher(options))
@@ -66,6 +72,8 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       rule: { exclude: 'jsonic,imp' },
     })
   }
+
+  // Fields may contain Jsonic content.
   else {
     if (true === options.string.csv) {
       jsonic.lex(buildCsvStringMatcher(options))
@@ -79,6 +87,7 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     })
   }
 
+  // Stream rows as they are parsed, do not store in result.
   if (stream) {
     let parser = jsonic.internal().parser
     let origStart = parser.start.bind(parser)
@@ -94,6 +103,7 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
 
   let token: Record<string, any> = {}
   if (strict) {
+
     // Disable JSON structure tokens
     token = {
       '#OB': null,
@@ -104,12 +114,16 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     }
   }
 
+  // Custom "comma"
   if (options.field.separation) {
     token['#CA'] = options.field.separation
   }
 
+  // Usually [#TX, #SP, #NR, #VL]
   let VAL = jsonic.internal().config.tokenSet.val
 
+
+  // Jsonic option overrides.
   let jsonicOptions: any = {
     rule: {
       start: 'csv',
@@ -118,8 +132,6 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       token
     },
     tokenSet: {
-      // ignore: strict ? [null, null, comment ? undefined : null] : [null, null],
-
       // See jsonic/src/defaults.ts; and util.deep merging
       ignore: [
         strict ? null : undefined, // Handle #SP space
@@ -159,22 +171,27 @@ fields per row are expected.`,
     },
   }
 
-
   jsonic.options(jsonicOptions)
 
   let { LN, CA, SP, ZZ } = jsonic.token
 
 
+  // Starting rule.
   jsonic.rule('csv', (rs: RuleSpec): RuleSpec => {
     rs
       .bo((r: Rule, ctx: Context) => {
-        ctx.use.recordI = 0
-        stream && stream('start')
-        r.node = []
+        ctx.use.recordI = 0 // Record counter.
+        stream && stream('start') // If streaming, send 'start' event.
+        r.node = [] // Top level list of records - the result!
       })
       .open([
+        // End immediately if EOF
         { s: [ZZ] },
+
+        // Ignore empty lines from the start.
         !record_empty && { s: [LN], r: 'newline' },
+
+        // Look for the first record.
         { p: 'record' }
       ])
       .ac(() => { (stream && stream('end')) })
@@ -183,11 +200,11 @@ fields per row are expected.`,
   })
 
 
-
-
+  // Ignore empty lines. Keep consuming LN until there's a record or EOF.
   jsonic.rule('newline', (rs: RuleSpec) => {
     rs
       .open([
+        // NOTE: r in open means no close except final
         { s: [LN, LN], r: 'newline' },
         { s: [LN], r: 'newline' },
         { s: [ZZ] },
@@ -202,52 +219,45 @@ fields per row are expected.`,
   })
 
 
+  // A CSV record line.
   jsonic.rule('record', (rs: RuleSpec) => {
     rs
       .open([
-        // {
-        //   s: [LN, ZZ],
-        // },
-        // {
-        //   s: [LN],
-        //   b: 1,
-        //   c: (r: Rule, ctx: Context) =>
-        //     0 === ctx.use.recordI && null == r.o0.ignored,
-        // },
-        // {
-        //   s: [LN],
-        //   r: 'record'
-        // },
-
-        // { s: [LN] },
-
+        // Reuse Jsonic list rule
         { p: 'list' },
       ])
       .close([
-        { s: [ZZ] }, // EOF also ends CSV
+        // EOF also ends CSV
+        { s: [ZZ] },
+
+        // Last LN is not a record.
         { s: [LN, ZZ] },
+
+        // Ignore (or not) empty lines.
         { s: [LN], r: record_empty ? 'record' : 'newline' },
       ])
       .bc((rule: Rule, ctx: Context) => {
-        // if (ZZ === rule.o1.tin) return;
 
+        // Record field names
         let fields: string[] = ctx.use.fields || options.field.names
 
-        // First line is fields
+        // First line is fields if options.header=true
         if (0 === ctx.use.recordI && header) {
           fields = ctx.use.fields =
             undefined === rule.child.node ? [] : rule.child.node
         }
+
+        // A normal record line.
         else {
           let record: any = rule.child.node || []
 
+          // Return records as objects with names fields
           if (objres) {
             let obj: Record<string, any> = {}
             let i = 0
 
             if (fields) {
               if (options.field.exact) {
-
                 if (record.length !== fields.length) {
                   return ctx.t0.bad(record.length > fields.length ?
                     'csv_extra_field' : 'csv_missing_field')
@@ -263,7 +273,7 @@ fields per row are expected.`,
 
             }
 
-
+            // Handle extra unnamed fields.
             for (; i < record.length; i++) {
               let field_name = options.field.nonameprefix + i
               obj[field_name] = undefined === record[i] ?
@@ -272,6 +282,8 @@ fields per row are expected.`,
 
             record = obj
           }
+
+          // Return records as arrays.
           else {
             for (let i = 0; i < record.length; i++) {
               record[i] = undefined === record[i] ? options.field.empty : record[i]
@@ -294,16 +306,25 @@ fields per row are expected.`,
 
   jsonic.rule('list', (rs: RuleSpec) => {
     return rs
-      .open([{ s: [LN], b: 1 }])
+      .open([
+        // If not ignoring empty fields, don't consume LN used to close empty record.
+        { s: [LN], b: 1 }
+      ])
   })
+
 
   jsonic.rule('elem', (rs: RuleSpec) => {
     return rs
       .open([
+        // An empty element
         { s: [CA], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
       ], { append: false })
+
       .close([
+        // An empty element at the end of the line
         { s: [CA, LN], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
+
+        // LN ends record
         { s: [LN], b: 1 },
       ], { append: false })
   })
@@ -312,15 +333,19 @@ fields per row are expected.`,
   jsonic.rule('val', (rs: RuleSpec) => {
     return rs
       .open([
+
+        // Handle text and space concatentation
         { s: [VAL, SP], b: 2, p: 'text' },
         { s: [SP], b: 1, p: 'text' },
+
+        // LN ends record
         { s: [LN], b: 1 },
       ], { append: false })
   })
 
 
-
-
+  // Handle text and space concatentation
+  // NOTE: trim and string are complications.
   jsonic.rule('text', (rs: RuleSpec) => {
     return rs
 
@@ -328,20 +353,19 @@ fields per row are expected.`,
       .open([
         {
           // NOTE: r in open means no close except final
-          // s: [TX, SP], b: 1, r: 'text', n: { text: 1 },
           s: [VAL, SP], b: 1, r: 'text', n: { text: 1 },
           g: 'csv,space,follows',
           a: (r: Rule) => {
-            // Keep appending to prev node
+            // Keep appending space to prev node
             let v = (1 === r.n.text ? r : r.prev)
             r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.val
           }
         },
         {
-          // s: [SP, TX], r: 'text', n: { text: 1 },
           s: [SP, VAL], r: 'text', n: { text: 1 },
           g: 'csv,space,leads',
           a: (r: Rule) => {
+            // Inner space
             let v = (1 === r.n.text ? r : r.prev)
             r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
               (2 <= r.n.text || !trim ? r.o0.src : '') +
@@ -352,6 +376,7 @@ fields per row are expected.`,
           s: [SP, [CA, LN, ZZ]], b: 1, n: { text: 1 },
           g: 'csv,end',
           a: (r: Rule) => {
+            // Final space
             let v = (1 === r.n.text ? r : r.prev)
             r.node = v.node = (1 === r.n.text ? '' : r.prev.node) +
               (!trim ? r.o0.src : '')
@@ -381,6 +406,9 @@ fields per row are expected.`,
   })
 }
 
+// Custom CSV String matcher.
+// Handles "a""b" -> "a"b" quoting wierdness.
+// This is a reduced copy of the standard Jsonic string matcher.
 function buildCsvStringMatcher(csvopts: CsvOptions) {
   return function makeCsvStringMatcher(cfg: Config, _opts: Options) {
     return function csvStringMatcher(lex: Lex) {
@@ -477,6 +505,7 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
 }
 
 
+// Default option values.
 Csv.defaults = {
   // Trim surrounding space. Default: false (!strict=>true)
   trim: null,
@@ -532,12 +561,18 @@ Csv.defaults = {
     empty: false
   },
 
+  // Control string handling.
   string: {
+
+    // Quote character for CSV-style strings.
     quote: '"',
+
+    // If false, use Jsonic-style strings.
     csv: null,
   }
 
 } as CsvOptions
+
 
 export {
   Csv,
