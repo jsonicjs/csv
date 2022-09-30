@@ -265,6 +265,19 @@ describe('csv', () => {
   })
 
 
+  test('value', async () => {
+    const j = Jsonic.make().use(Csv)
+    expect(j('a\ntrue')).toEqual([{ a: 'true' }])
+    expect(j('a\nfalse')).toEqual([{ a: 'false' }])
+    expect(j('a\nnull')).toEqual([{ a: 'null' }])
+
+    const jv = Jsonic.make().use(Csv, { value: true })
+    expect(jv('a\ntrue')).toEqual([{ a: true }])
+    expect(jv('a\nfalse')).toEqual([{ a: false }])
+    expect(jv('a\nnull')).toEqual([{ a: null }])
+  })
+
+
   test('stream', (fin: any) => {
     let tmp: any = {}
     let data: any[]

@@ -207,6 +207,16 @@ describe('csv', () => {
         expect(jt('a\n1')).toEqual([{ a: 1 }]);
         expect(jt('a\n1e2')).toEqual([{ a: 100 }]);
     });
+    test('value', async () => {
+        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        expect(j('a\ntrue')).toEqual([{ a: 'true' }]);
+        expect(j('a\nfalse')).toEqual([{ a: 'false' }]);
+        expect(j('a\nnull')).toEqual([{ a: 'null' }]);
+        const jv = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { value: true });
+        expect(jv('a\ntrue')).toEqual([{ a: true }]);
+        expect(jv('a\nfalse')).toEqual([{ a: false }]);
+        expect(jv('a\nnull')).toEqual([{ a: null }]);
+    });
     test('stream', (fin) => {
         let tmp = {};
         let data;

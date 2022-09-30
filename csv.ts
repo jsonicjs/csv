@@ -21,6 +21,7 @@ type CsvOptions = {
   trim: boolean | null
   comment: boolean | null
   number: boolean | null
+  value: boolean | null
   header: boolean
   object: boolean
   stream: null | ((what: string, record?: Record<string, any> | Error) => void)
@@ -30,10 +31,15 @@ type CsvOptions = {
     nonameprefix: string
     empty: any
     names: undefined | string[]
+    exact: boolean
   }
   record: {
     separators: null | string
     empty: boolean
+  }
+  string: {
+    quote: string
+    csv: null | boolean
   }
 }
 
@@ -48,19 +54,26 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
 
   let trim = !!options.trim
   let comment = !!options.comment
-  let number = !!options.number
+  let opt_number = !!options.number
+  let opt_value = !!options.value
   let record_empty = !!options.record?.empty
 
   if (strict) {
-    jsonic.lex(makeCsvStringMatcher)
+    if (false !== options.string.csv) {
+      jsonic.lex(buildCsvStringMatcher(options))
+    }
     jsonic.options({
       rule: { exclude: 'jsonic,imp' },
     })
   }
   else {
+    if (true === options.string.csv) {
+      jsonic.lex(buildCsvStringMatcher(options))
+    }
     trim = null === options.trim ? true : trim
     comment = null === options.comment ? true : comment
-    number = null === options.number ? true : number
+    opt_number = null === options.number ? true : opt_number
+    opt_value = null === options.value ? true : opt_value
     jsonic.options({
       rule: { exclude: 'imp' },
     })
@@ -115,10 +128,10 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       ]
     },
     number: {
-      lex: number,
+      lex: opt_number,
     },
     value: {
-      lex: !strict,
+      lex: opt_value,
     },
     comment: {
       lex: comment,
@@ -134,12 +147,15 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
         null == options.record.separators ? undefined : options.record.separators,
     },
     error: {
-      csv_unexpected_field: 'unexpected field value: $fsrc'
+      csv_extra_field: 'unexpected extra field value: $fsrc',
+      csv_missing_field: 'missing field'
     },
     hint: {
-      csv_unexpected_field:
+      csv_extra_field:
         `Row $row has too many fields (the first of which is: $fsrc). Only $len
 fields per row are expected.`,
+      csv_missing_field:
+        `Row $row has too few fields. $len fields per row are expected.`,
     },
   }
 
@@ -230,13 +246,23 @@ fields per row are expected.`,
             let i = 0
 
             if (fields) {
+              if (options.field.exact) {
+
+                if (record.length !== fields.length) {
+                  return ctx.t0.bad(record.length > fields.length ?
+                    'csv_extra_field' : 'csv_missing_field')
+                }
+              }
+
               let fI = 0
               for (; fI < fields.length; fI++) {
                 obj[fields[fI]] = undefined === record[fI] ?
                   options.field.empty : record[fI]
               }
               i = fI
+
             }
+
 
             for (; i < record.length; i++) {
               let field_name = options.field.nonameprefix + i
@@ -308,7 +334,7 @@ fields per row are expected.`,
           a: (r: Rule) => {
             // Keep appending to prev node
             let v = (1 === r.n.text ? r : r.prev)
-            r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.src
+            r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.val
           }
         },
         {
@@ -355,101 +381,100 @@ fields per row are expected.`,
   })
 }
 
+function buildCsvStringMatcher(csvopts: CsvOptions) {
+  return function makeCsvStringMatcher(cfg: Config, _opts: Options) {
+    return function csvStringMatcher(lex: Lex) {
+      let quoteMap: any = { [csvopts.string.quote]: true }
 
-function makeCsvStringMatcher(cfg: Config, _opts: Options) {
+      let { pnt, src } = lex
+      let { sI, rI, cI } = pnt
+      let srclen = src.length
 
-  return function csvStringMatcher(lex: Lex) {
-    let quoteMap: any = { '"': true }
+      if (quoteMap[src[sI]]) {
+        const q = src[sI] // Quote character
+        const qI = sI
+        const qrI = rI
+        ++sI
+        ++cI
 
-    let { pnt, src } = lex
-    let { sI, rI, cI } = pnt
-    let srclen = src.length
+        let s: string[] = []
+        // let rs: string | undefined
 
-    if (quoteMap[src[sI]]) {
-      const q = src[sI] // Quote character
-      const qI = sI
-      const qrI = rI
-      ++sI
-      ++cI
-
-      let s: string[] = []
-      // let rs: string | undefined
-
-      for (sI; sI < srclen; sI++) {
-        cI++
-        let c = src[sI]
-
-        // Quote char.
-        if (q === c) {
-          sI++
+        for (sI; sI < srclen; sI++) {
           cI++
+          let c = src[sI]
 
-          if (q === src[sI]) {
-            s.push(q)
-          }
-          else {
-            break // String finished.
-          }
-        }
-
-        // Body part of string.
-        else {
-          let bI = sI
-
-          // TODO: move to cfgx
-          let qc = q.charCodeAt(0)
-          let cc = src.charCodeAt(sI)
-
-          while (
-            sI < srclen &&
-            32 <= cc &&
-            qc !== cc
-          ) {
-            cc = src.charCodeAt(++sI)
+          // Quote char.
+          if (q === c) {
+            sI++
             cI++
-          }
-          cI--
 
-          if (cfg.line.chars[src[sI]]) {
-            if (cfg.line.rowChars[src[sI]]) {
-              pnt.rI = ++rI
+            if (q === src[sI]) {
+              s.push(q)
             }
+            else {
+              break // String finished.
+            }
+          }
 
-            cI = 1
-            s.push(src.substring(bI, sI + 1))
-          }
-          else if (cc < 32) {
-            pnt.sI = sI
-            pnt.cI = cI
-            return lex.bad('unprintable', sI, sI + 1)
-          }
+          // Body part of string.
           else {
-            s.push(src.substring(bI, sI))
-            sI--
+            let bI = sI
+
+            // TODO: move to cfgx
+            let qc = q.charCodeAt(0)
+            let cc = src.charCodeAt(sI)
+
+            while (
+              sI < srclen &&
+              32 <= cc &&
+              qc !== cc
+            ) {
+              cc = src.charCodeAt(++sI)
+              cI++
+            }
+            cI--
+
+            if (cfg.line.chars[src[sI]]) {
+              if (cfg.line.rowChars[src[sI]]) {
+                pnt.rI = ++rI
+              }
+
+              cI = 1
+              s.push(src.substring(bI, sI + 1))
+            }
+            else if (cc < 32) {
+              pnt.sI = sI
+              pnt.cI = cI
+              return lex.bad('unprintable', sI, sI + 1)
+            }
+            else {
+              s.push(src.substring(bI, sI))
+              sI--
+            }
           }
         }
+
+        if (src[sI - 1] !== q || pnt.sI === sI - 1) {
+          pnt.rI = qrI
+          return lex.bad('unterminated_string', qI, sI)
+        }
+
+        const tkn = lex.token(
+          '#ST',
+          s.join(EMPTY),
+          src.substring(pnt.sI, sI),
+          pnt
+        )
+
+        pnt.sI = sI
+        pnt.rI = rI
+        pnt.cI = cI
+        return tkn
       }
-
-      if (src[sI - 1] !== q || pnt.sI === sI - 1) {
-        pnt.rI = qrI
-        return lex.bad('unterminated_string', qI, sI)
-      }
-
-      const tkn = lex.token(
-        '#ST',
-        s.join(EMPTY),
-        src.substring(pnt.sI, sI),
-        pnt
-      )
-
-      pnt.sI = sI
-      pnt.rI = rI
-      pnt.cI = cI
-      return tkn
     }
   }
 }
-
 
 
 Csv.defaults = {
@@ -461,6 +486,9 @@ Csv.defaults = {
 
   // Support numbers. Default: false (!strict=>true)
   number: null,
+
+  // Support exact values (such as booleans). Default: false (!strict=>true)
+  value: null,
 
   // First row is headers.
   header: true,
@@ -489,6 +517,9 @@ Csv.defaults = {
 
     // Predefined field names (string[]).
     names: undefined,
+
+    // Require each row to have an exact number of fields (same number as headers).
+    exact: false,
   },
 
   // Control record handling.
@@ -499,13 +530,18 @@ Csv.defaults = {
 
     // Allow empty lines to generate records.
     empty: false
+  },
+
+  string: {
+    quote: '"',
+    csv: null,
   }
 
 } as CsvOptions
 
 export {
   Csv,
-  makeCsvStringMatcher,
+  buildCsvStringMatcher,
 }
 
 export type { CsvOptions }

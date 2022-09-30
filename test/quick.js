@@ -16,19 +16,21 @@ const tlog = []
 //       })
 
 const csv = Jsonic.make()
-      .use(Debug,{trace:true})
+      // .use(Debug,{trace:true})
       .use(Csv, {
         // line: {empty:true},
         header: false,
         object: false,
+        trim: true,
+        value: true,
         // comment: true,
-        record: { empty: true }
+        // record: { empty: true }
       })
 // .sub({lex:(t)=>console.log(t)})
       .sub({lex:(t)=>tlog.push(t)})
 
 // console.log(csv.options.tokenSet)
-// console.log(csv.internal().config.tokenSet)
+console.log(csv.internal().config.value)
 
 // console.log(csv(`a,b
 // 1, 2
@@ -123,6 +125,10 @@ const csv = Jsonic.make()
 // #ZZ
 // `))
 
-console.log(csv('\n'))
+// console.log(csv('\n'))
+
+// console.log(csv('A,"B" '))
+
+console.log(csv('true'))
 
 console.log(tlog)

@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2021-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeCsvStringMatcher = exports.Csv = void 0;
+exports.buildCsvStringMatcher = exports.Csv = void 0;
 // NOTE: Good example of use case for `r` control in open rule.
 // TODO: other delimiters, tab etc
 const jsonic_next_1 = require("@jsonic/jsonic-next");
@@ -13,18 +13,25 @@ const Csv = (jsonic, options) => {
     const stream = options.stream;
     let trim = !!options.trim;
     let comment = !!options.comment;
-    let number = !!options.number;
+    let opt_number = !!options.number;
+    let opt_value = !!options.value;
     let record_empty = !!((_a = options.record) === null || _a === void 0 ? void 0 : _a.empty);
     if (strict) {
-        jsonic.lex(makeCsvStringMatcher);
+        if (false !== options.string.csv) {
+            jsonic.lex(buildCsvStringMatcher(options));
+        }
         jsonic.options({
             rule: { exclude: 'jsonic,imp' },
         });
     }
     else {
+        if (true === options.string.csv) {
+            jsonic.lex(buildCsvStringMatcher(options));
+        }
         trim = null === options.trim ? true : trim;
         comment = null === options.comment ? true : comment;
-        number = null === options.number ? true : number;
+        opt_number = null === options.number ? true : opt_number;
+        opt_value = null === options.value ? true : opt_value;
         jsonic.options({
             rule: { exclude: 'imp' },
         });
@@ -73,10 +80,10 @@ const Csv = (jsonic, options) => {
             ]
         },
         number: {
-            lex: number,
+            lex: opt_number,
         },
         value: {
-            lex: !strict,
+            lex: opt_value,
         },
         comment: {
             lex: comment,
@@ -90,11 +97,13 @@ const Csv = (jsonic, options) => {
             rowChars: null == options.record.separators ? undefined : options.record.separators,
         },
         error: {
-            csv_unexpected_field: 'unexpected field value: $fsrc'
+            csv_extra_field: 'unexpected extra field value: $fsrc',
+            csv_missing_field: 'missing field'
         },
         hint: {
-            csv_unexpected_field: `Row $row has too many fields (the first of which is: $fsrc). Only $len
+            csv_extra_field: `Row $row has too many fields (the first of which is: $fsrc). Only $len
 fields per row are expected.`,
+            csv_missing_field: `Row $row has too few fields. $len fields per row are expected.`,
         },
     };
     jsonic.options(jsonicOptions);
@@ -167,6 +176,12 @@ fields per row are expected.`,
                     let obj = {};
                     let i = 0;
                     if (fields) {
+                        if (options.field.exact) {
+                            if (record.length !== fields.length) {
+                                return ctx.t0.bad(record.length > fields.length ?
+                                    'csv_extra_field' : 'csv_missing_field');
+                            }
+                        }
                         let fI = 0;
                         for (; fI < fields.length; fI++) {
                             obj[fields[fI]] = undefined === record[fI] ?
@@ -231,7 +246,7 @@ fields per row are expected.`,
                 a: (r) => {
                     // Keep appending to prev node
                     let v = (1 === r.n.text ? r : r.prev);
-                    r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.src;
+                    r.node = v.node = (1 === r.n.text ? '' : r.prev.node) + r.o0.val;
                 }
             },
             {
@@ -276,78 +291,80 @@ fields per row are expected.`,
     });
 };
 exports.Csv = Csv;
-function makeCsvStringMatcher(cfg, _opts) {
-    return function csvStringMatcher(lex) {
-        let quoteMap = { '"': true };
-        let { pnt, src } = lex;
-        let { sI, rI, cI } = pnt;
-        let srclen = src.length;
-        if (quoteMap[src[sI]]) {
-            const q = src[sI]; // Quote character
-            const qI = sI;
-            const qrI = rI;
-            ++sI;
-            ++cI;
-            let s = [];
-            // let rs: string | undefined
-            for (sI; sI < srclen; sI++) {
-                cI++;
-                let c = src[sI];
-                // Quote char.
-                if (q === c) {
-                    sI++;
+function buildCsvStringMatcher(csvopts) {
+    return function makeCsvStringMatcher(cfg, _opts) {
+        return function csvStringMatcher(lex) {
+            let quoteMap = { [csvopts.string.quote]: true };
+            let { pnt, src } = lex;
+            let { sI, rI, cI } = pnt;
+            let srclen = src.length;
+            if (quoteMap[src[sI]]) {
+                const q = src[sI]; // Quote character
+                const qI = sI;
+                const qrI = rI;
+                ++sI;
+                ++cI;
+                let s = [];
+                // let rs: string | undefined
+                for (sI; sI < srclen; sI++) {
                     cI++;
-                    if (q === src[sI]) {
-                        s.push(q);
-                    }
-                    else {
-                        break; // String finished.
-                    }
-                }
-                // Body part of string.
-                else {
-                    let bI = sI;
-                    // TODO: move to cfgx
-                    let qc = q.charCodeAt(0);
-                    let cc = src.charCodeAt(sI);
-                    while (sI < srclen &&
-                        32 <= cc &&
-                        qc !== cc) {
-                        cc = src.charCodeAt(++sI);
+                    let c = src[sI];
+                    // Quote char.
+                    if (q === c) {
+                        sI++;
                         cI++;
-                    }
-                    cI--;
-                    if (cfg.line.chars[src[sI]]) {
-                        if (cfg.line.rowChars[src[sI]]) {
-                            pnt.rI = ++rI;
+                        if (q === src[sI]) {
+                            s.push(q);
                         }
-                        cI = 1;
-                        s.push(src.substring(bI, sI + 1));
+                        else {
+                            break; // String finished.
+                        }
                     }
-                    else if (cc < 32) {
-                        pnt.sI = sI;
-                        pnt.cI = cI;
-                        return lex.bad('unprintable', sI, sI + 1);
-                    }
+                    // Body part of string.
                     else {
-                        s.push(src.substring(bI, sI));
-                        sI--;
+                        let bI = sI;
+                        // TODO: move to cfgx
+                        let qc = q.charCodeAt(0);
+                        let cc = src.charCodeAt(sI);
+                        while (sI < srclen &&
+                            32 <= cc &&
+                            qc !== cc) {
+                            cc = src.charCodeAt(++sI);
+                            cI++;
+                        }
+                        cI--;
+                        if (cfg.line.chars[src[sI]]) {
+                            if (cfg.line.rowChars[src[sI]]) {
+                                pnt.rI = ++rI;
+                            }
+                            cI = 1;
+                            s.push(src.substring(bI, sI + 1));
+                        }
+                        else if (cc < 32) {
+                            pnt.sI = sI;
+                            pnt.cI = cI;
+                            return lex.bad('unprintable', sI, sI + 1);
+                        }
+                        else {
+                            s.push(src.substring(bI, sI));
+                            sI--;
+                        }
                     }
                 }
+                if (src[sI - 1] !== q || pnt.sI === sI - 1) {
+                    pnt.rI = qrI;
+                    return lex.bad('unterminated_string', qI, sI);
+                }
+                const tkn = lex.token('#ST', s.join(jsonic_next_1.EMPTY), src.substring(pnt.sI, sI), pnt);
+                pnt.sI = sI;
+                pnt.rI = rI;
+                pnt.cI = cI;
+                return tkn;
             }
-            if (src[sI - 1] !== q || pnt.sI === sI - 1) {
-                pnt.rI = qrI;
-                return lex.bad('unterminated_string', qI, sI);
-            }
-            const tkn = lex.token('#ST', s.join(jsonic_next_1.EMPTY), src.substring(pnt.sI, sI), pnt);
-            pnt.sI = sI;
-            pnt.rI = rI;
-            pnt.cI = cI;
-            return tkn;
-        }
+        };
     };
 }
-exports.makeCsvStringMatcher = makeCsvStringMatcher;
+exports.buildCsvStringMatcher = buildCsvStringMatcher;
 Csv.defaults = {
     // Trim surrounding space. Default: false (!strict=>true)
     trim: null,
@@ -355,6 +372,8 @@ Csv.defaults = {
     comment: null,
     // Support numbers. Default: false (!strict=>true)
     number: null,
+    // Support exact values (such as booleans). Default: false (!strict=>true)
+    value: null,
     // First row is headers.
     header: true,
     // Records are returned as objects. If false, as arrays.
@@ -374,6 +393,8 @@ Csv.defaults = {
         empty: '',
         // Predefined field names (string[]).
         names: undefined,
+        // Require each row to have an exact number of fields (same number as headers).
+        exact: false,
     },
     // Control record handling.
     record: {
@@ -381,6 +402,10 @@ Csv.defaults = {
         separators: null,
         // Allow empty lines to generate records.
         empty: false
+    },
+    string: {
+        quote: '"',
+        csv: null,
     }
 };
 //# sourceMappingURL=csv.js.map
