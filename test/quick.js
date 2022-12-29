@@ -28,7 +28,18 @@ const csv = Jsonic.make()
   .sub({ lex: (t) => tlog.push(t) })
 
 // console.log(csv.options.tokenSet)
-console.log(csv.internal().config.lex.match)
+// console.log(csv.internal().config.lex.match)
+
+// console.log(csv(`a,b
+// 1,2,`,{xlog:-1}))
+
+console.log(
+  csv(
+    `a
+,1`,
+    { xlog: -1 }
+  )
+)
 
 // console.log(csv(`a,b
 // 1, 2
@@ -115,8 +126,10 @@ console.log(csv.internal().config.lex.match)
 
 // console.log(csv('\n'))
 
-console.log(csv('a,b\nA,"""B"'))
+// console.log(csv('a,b\nA,"""B"'))
 
 // console.log(csv('true'))
 
-console.log(tlog)
+// console.log(csv('\na\n'))
+
+// console.log(tlog)

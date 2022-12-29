@@ -2,10 +2,6 @@
 /* Copyright (c) 2021-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildCsvStringMatcher = exports.Csv = void 0;
-// NOTE: Good example of use case for `r` control in open rule, where
-// close state only gets called on last rule.
-// Import Jsonic types used by plugins.
-const jsonic_next_1 = require("@jsonic/jsonic-next");
 // Plugin implementation.
 const Csv = (jsonic, options) => {
     var _a;
@@ -71,7 +67,7 @@ const Csv = (jsonic, options) => {
         token['#CA'] = options.field.separation;
     }
     // Usually [#TX, #SP, #NR, #VL]
-    let VAL = jsonic.internal().config.tokenSet.val;
+    let VAL = jsonic.tokenSet.VAL;
     // Jsonic option overrides.
     let jsonicOptions = {
         rule: {
@@ -82,7 +78,8 @@ const Csv = (jsonic, options) => {
         },
         tokenSet: {
             // See jsonic/src/defaults.ts; and util.deep merging
-            ignore: [
+            // ignore: [
+            IGNORE: [
                 strict ? null : undefined,
                 null,
                 undefined, // Still ignore #CM comments
@@ -132,7 +129,10 @@ fields per row are expected.`,
             // End immediately if EOF
             { s: [ZZ] },
             // Ignore empty lines from the start.
-            !record_empty && { s: [LN], r: 'newline' },
+            // !record_empty && { s: [LN], p: 'newline' },
+            !record_empty
+                ? { s: [LN], p: 'newline' }
+                : null,
             // Look for the first record.
             { p: 'record' },
         ])
@@ -226,27 +226,44 @@ fields per row are expected.`,
         return rs;
     });
     jsonic.rule('list', (rs) => {
-        return rs.open([
+        return rs
+            .open([
             // If not ignoring empty fields, don't consume LN used to close empty record.
             { s: [LN], b: 1 },
+        ])
+            .close([
+            // LN ends record
+            { s: [LN], b: 1 },
+            { s: [ZZ] },
         ]);
     });
     jsonic.rule('elem', (rs) => {
         return rs
             .open([
             // An empty element
-            { s: [CA], b: 1, a: (r) => r.node.push(options.field.empty) },
-        ], { append: false })
+            {
+                s: [CA],
+                b: 1,
+                a: (r) => {
+                    r.node.push(options.field.empty);
+                    r.use.done = true;
+                },
+            },
+        ]
+        // { append: false }
+        )
             .close([
             // An empty element at the end of the line
             {
-                s: [CA, LN],
+                s: [CA, [LN, ZZ]],
                 b: 1,
                 a: (r) => r.node.push(options.field.empty),
             },
             // LN ends record
             { s: [LN], b: 1 },
-        ], { append: false });
+        ]
+        // { append: false }
+        );
     });
     jsonic.rule('val', (rs) => {
         return rs.open([
@@ -255,7 +272,9 @@ fields per row are expected.`,
             { s: [SP], b: 1, p: 'text' },
             // LN ends record
             { s: [LN], b: 1 },
-        ], { append: false });
+        ]
+        // { append: false }
+        );
     });
     // Handle text and space concatentation
     // NOTE: trim and string are complications.
@@ -390,7 +409,9 @@ function buildCsvStringMatcher(csvopts) {
                     pnt.rI = qrI;
                     return lex.bad('unterminated_string', qI, sI);
                 }
-                const tkn = lex.token('#ST', s.join(jsonic_next_1.EMPTY), src.substring(pnt.sI, sI), pnt);
+                const tkn = lex.token('#ST', 
+                // s.join(EMPTY),
+                s.join(''), src.substring(pnt.sI, sI), pnt);
                 pnt.sI = sI;
                 pnt.rI = rI;
                 pnt.cI = cI;

@@ -381,7 +381,7 @@ module.exports = {
     make: (Jsonic) =>
       Jsonic.make({
         comment: {
-          marker: [{ start: '!' }],
+          def: { hash: { start: '!' } },
         },
       }),
     opt: { header: false, object: false, comment: true },
@@ -400,7 +400,7 @@ module.exports = {
     make: (Jsonic) =>
       Jsonic.make({
         comment: {
-          marker: [{ start: '=N(' }],
+          def: { hash: { start: '=N(' } },
         },
       }),
     opt: { header: false, object: false, comment: true },

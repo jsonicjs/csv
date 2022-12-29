@@ -1,5 +1,5 @@
 import { Plugin, Config, Options, Lex } from '@jsonic/jsonic-next';
-declare type CsvOptions = {
+type CsvOptions = {
     trim: boolean | null;
     comment: boolean | null;
     number: boolean | null;

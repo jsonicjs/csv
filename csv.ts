@@ -13,7 +13,8 @@ import {
   Config,
   Options,
   Lex,
-  EMPTY,
+  AltSpec,
+  // EMPTY,
 } from '@jsonic/jsonic-next'
 
 // See defaults below for commentary.
@@ -114,7 +115,7 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
   }
 
   // Usually [#TX, #SP, #NR, #VL]
-  let VAL = jsonic.internal().config.tokenSet.val
+  let VAL = jsonic.tokenSet.VAL
 
   // Jsonic option overrides.
   let jsonicOptions: any = {
@@ -126,7 +127,8 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     },
     tokenSet: {
       // See jsonic/src/defaults.ts; and util.deep merging
-      ignore: [
+      // ignore: [
+      IGNORE: [
         strict ? null : undefined, // Handle #SP space
         null, // Handle #LN newlines
         undefined, // Still ignore #CM comments
@@ -182,7 +184,10 @@ fields per row are expected.`,
         { s: [ZZ] },
 
         // Ignore empty lines from the start.
-        !record_empty && { s: [LN], r: 'newline' },
+        // !record_empty && { s: [LN], p: 'newline' },
+        !record_empty
+          ? { s: [LN], p: 'newline' }
+          : (null as unknown as AltSpec),
 
         // Look for the first record.
         { p: 'record' },
@@ -294,10 +299,17 @@ fields per row are expected.`,
   })
 
   jsonic.rule('list', (rs: RuleSpec) => {
-    return rs.open([
-      // If not ignoring empty fields, don't consume LN used to close empty record.
-      { s: [LN], b: 1 },
-    ])
+    return rs
+      .open([
+        // If not ignoring empty fields, don't consume LN used to close empty record.
+        { s: [LN], b: 1 },
+      ])
+      .close([
+        // LN ends record
+        { s: [LN], b: 1 },
+
+        { s: [ZZ] },
+      ])
   })
 
   jsonic.rule('elem', (rs: RuleSpec) => {
@@ -305,24 +317,31 @@ fields per row are expected.`,
       .open(
         [
           // An empty element
-          { s: [CA], b: 1, a: (r: Rule) => r.node.push(options.field.empty) },
-        ],
-        { append: false }
+          {
+            s: [CA],
+            b: 1,
+            a: (r: Rule) => {
+              r.node.push(options.field.empty)
+              r.use.done = true
+            },
+          },
+        ]
+        // { append: false }
       )
 
       .close(
         [
           // An empty element at the end of the line
           {
-            s: [CA, LN],
+            s: [CA, [LN, ZZ]],
             b: 1,
             a: (r: Rule) => r.node.push(options.field.empty),
           },
 
           // LN ends record
           { s: [LN], b: 1 },
-        ],
-        { append: false }
+        ]
+        // { append: false }
       )
   })
 
@@ -335,8 +354,8 @@ fields per row are expected.`,
 
         // LN ends record
         { s: [LN], b: 1 },
-      ],
-      { append: false }
+      ]
+      // { append: false }
     )
   })
 
@@ -490,7 +509,8 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
 
         const tkn = lex.token(
           '#ST',
-          s.join(EMPTY),
+          // s.join(EMPTY),
+          s.join(''),
           src.substring(pnt.sI, sI),
           pnt
         )
