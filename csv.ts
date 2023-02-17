@@ -66,8 +66,10 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       // jsonic.lex(buildCsvStringMatcher(options))
       jsonic.options({
         lex: {
-          match: { stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) } }
-        }
+          match: {
+            stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) },
+          },
+        },
       })
     }
     jsonic.options({
@@ -81,8 +83,10 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
       // jsonic.lex(buildCsvStringMatcher(options))
       jsonic.options({
         lex: {
-          match: { stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) } }
-        }
+          match: {
+            stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) },
+          },
+        },
       })
     }
     trim = null === options.trim ? true : trim
