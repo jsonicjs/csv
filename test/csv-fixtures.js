@@ -647,7 +647,7 @@ module.exports = {
     make: (jsonic) =>
       jsonic.make({
         value: {
-          map: {
+          def: {
             TRUE: { val: true },
             FALSE: { val: false },
           },
@@ -661,7 +661,7 @@ module.exports = {
     make: (jsonic) =>
       jsonic.make({
         value: {
-          map: {
+          def: {
             null: null,
           },
         },

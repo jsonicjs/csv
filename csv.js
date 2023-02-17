@@ -19,7 +19,12 @@ const Csv = (jsonic, options) => {
     // In strict mode, Jsonic field content is not parsed.
     if (strict) {
         if (false !== options.string.csv) {
-            jsonic.lex(buildCsvStringMatcher(options));
+            // jsonic.lex(buildCsvStringMatcher(options))
+            jsonic.options({
+                lex: {
+                    match: { stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) } }
+                }
+            });
         }
         jsonic.options({
             rule: { exclude: 'jsonic,imp' },
@@ -28,7 +33,12 @@ const Csv = (jsonic, options) => {
     // Fields may contain Jsonic content.
     else {
         if (true === options.string.csv) {
-            jsonic.lex(buildCsvStringMatcher(options));
+            // jsonic.lex(buildCsvStringMatcher(options))
+            jsonic.options({
+                lex: {
+                    match: { stringcsv: { order: 1e5, make: buildCsvStringMatcher(options) } }
+                }
+            });
         }
         trim = null === options.trim ? true : trim;
         comment = null === options.comment ? true : comment;
