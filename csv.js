@@ -438,6 +438,7 @@ exports.buildCsvStringMatcher = buildCsvStringMatcher;
 // Default option values.
 Csv.defaults = {
     // Trim surrounding space. Default: false (!strict=>true)
+    // trim$: 'Trim surrounding space',
     trim: null,
     // Support comments. Default: false (!strict=>true)
     comment: null,
@@ -456,7 +457,7 @@ Csv.defaults = {
     strict: true,
     // Control field handling
     field: {
-        // Separator string
+        // Separator string (only one!)
         separation: null,
         // Create numbered names for extra fields found in a record.
         nonameprefix: 'field~',

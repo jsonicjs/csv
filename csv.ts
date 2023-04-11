@@ -541,6 +541,7 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
 // Default option values.
 Csv.defaults = {
   // Trim surrounding space. Default: false (!strict=>true)
+  // trim$: 'Trim surrounding space',
   trim: null,
 
   // Support comments. Default: false (!strict=>true)
@@ -567,7 +568,7 @@ Csv.defaults = {
 
   // Control field handling
   field: {
-    // Separator string
+    // Separator string (only one!)
     separation: null,
 
     // Create numbered names for extra fields found in a record.
