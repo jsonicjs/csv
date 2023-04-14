@@ -24,6 +24,7 @@
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
     "watch": "tsc -w -d",
+    "doc": "jsonic-doc",
     "build": "tsc -d && cp csv.js csv.min.js && browserify -o csv.min.js -e csv.js -s @JsonicCsv -im -i assert -p tinyify",
     "prettier": "prettier --write --no-semi --single-quote *.ts test/*.js",
     "clean": "rm -rf node_modules yarn.lock package-lock.json",
@@ -40,17 +41,18 @@
     "LICENSE"
   ],
   "devDependencies": {
+    "@jsonic/doc": "^0.0.4",
     "@types/jest": "^29.5.0",
     "browserify": "^17.0.0",
     "csv-spectrum": "^1.0.0",
     "es-jest": "^2.1.0",
-    "esbuild": "^0.17.12",
+    "esbuild": "^0.17.16",
     "jest": "^29.5.0",
-    "prettier": "^2.8.5",
+    "prettier": "^2.8.7",
     "tinyify": "^4.0.0",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.4"
   },
   "peerDependencies": {
-    "@jsonic/jsonic-next": ">=2.9.1"
+    "@jsonic/jsonic-next": ">=2.10.0"
   }
 }
