@@ -269,7 +269,7 @@ fields per row are expected.`,
                   return ctx.t0.bad(
                     record.length > fields.length
                       ? 'csv_extra_field'
-                      : 'csv_missing_field'
+                      : 'csv_missing_field',
                   )
                 }
               }
@@ -339,7 +339,7 @@ fields per row are expected.`,
               r.use.done = true
             },
           },
-        ]
+        ],
         // { append: false }
       )
 
@@ -354,7 +354,7 @@ fields per row are expected.`,
 
           // LN ends record
           { s: [LN], b: 1 },
-        ]
+        ],
         // { append: false }
       )
   })
@@ -368,7 +368,7 @@ fields per row are expected.`,
 
         // LN ends record
         { s: [LN], b: 1 },
-      ]
+      ],
       // { append: false }
     )
   })
@@ -526,7 +526,7 @@ function buildCsvStringMatcher(csvopts: CsvOptions) {
           // s.join(EMPTY),
           s.join(''),
           src.substring(pnt.sI, sI),
-          pnt
+          pnt,
         )
 
         pnt.sI = sI

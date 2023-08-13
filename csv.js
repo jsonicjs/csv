@@ -263,9 +263,7 @@ fields per row are expected.`,
                     r.use.done = true;
                 },
             },
-        ]
-        // { append: false }
-        )
+        ])
             .close([
             // An empty element at the end of the line
             {
@@ -275,9 +273,7 @@ fields per row are expected.`,
             },
             // LN ends record
             { s: [LN], b: 1 },
-        ]
-        // { append: false }
-        );
+        ]);
     });
     jsonic.rule('val', (rs) => {
         return rs.open([
@@ -286,9 +282,7 @@ fields per row are expected.`,
             { s: [SP], b: 1, p: 'text' },
             // LN ends record
             { s: [LN], b: 1 },
-        ]
-        // { append: false }
-        );
+        ]);
     });
     // Handle text and space concatentation
     // NOTE: trim and string are complications.

@@ -37,8 +37,8 @@ console.log(
   csv(
     `a
 ,1`,
-    { xlog: -1 }
-  )
+    { xlog: -1 },
+  ),
 )
 
 // console.log(csv(`a,b
