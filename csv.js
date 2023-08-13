@@ -135,7 +135,7 @@ fields per row are expected.`,
     // Starting rule.
     jsonic.rule('csv', (rs) => {
         rs.bo((r, ctx) => {
-            ctx.use.recordI = 0; // Record counter.
+            ctx.u.recordI = 0; // Record counter.
             stream && stream('start'); // If streaming, send 'start' event.
             r.node = []; // Top level list of records - the result!
         })
@@ -186,10 +186,10 @@ fields per row are expected.`,
         ])
             .bc((rule, ctx) => {
             // Record field names
-            let fields = ctx.use.fields || options.field.names;
+            let fields = ctx.u.fields || options.field.names;
             // First line is fields if options.header=true
-            if (0 === ctx.use.recordI && header) {
-                ctx.use.fields = undefined === rule.child.node ? [] : rule.child.node;
+            if (0 === ctx.u.recordI && header) {
+                ctx.u.fields = undefined === rule.child.node ? [] : rule.child.node;
             }
             // A normal record line.
             else {
@@ -235,7 +235,7 @@ fields per row are expected.`,
                     rule.node.push(record);
                 }
             }
-            ctx.use.recordI++;
+            ctx.u.recordI++;
         });
         return rs;
     });
@@ -260,7 +260,7 @@ fields per row are expected.`,
                 b: 1,
                 a: (r) => {
                     r.node.push(options.field.empty);
-                    r.use.done = true;
+                    r.u.done = true;
                 },
             },
         ])

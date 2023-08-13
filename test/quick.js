@@ -1,4 +1,5 @@
-const { Jsonic, Debug } = require('@jsonic/jsonic-next')
+const { Jsonic } = require('@jsonic/jsonic-next')
+const { Debug } = require('@jsonic/jsonic-next/debug')
 const { Csv } = require('..')
 
 const tlog = []
