@@ -3,6 +3,7 @@
 This plugin allows the [Jsonic](https://jsonic.senecajs.org) JSON
 parser to support csv syntax.
 
+
 [![npm version](https://img.shields.io/npm/v/@jsonic/csv.svg)](https://npmjs.com/package/@jsonic/csv)
 [![build](https://github.com/jsonicjs/csv/actions/workflows/build.yml/badge.svg)](https://github.com/jsonicjs/csv/actions/workflows/build.yml)
 [![Coverage Status](https://coveralls.io/repos/github/jsonicjs/csv/badge.svg?branch=main)](https://coveralls.io/github/jsonicjs/csv?branch=main)
