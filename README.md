@@ -38,7 +38,6 @@ parser to support csv syntax.
   * _quote_: `string` (default: ") - quote
 * _trim_: `null` (default: null) - trim
 * _value_: `null` (default: null) - value
-
 <!--END:options-->
 
 
