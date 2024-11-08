@@ -1,7 +1,8 @@
 "use strict";
 /* Copyright (c) 2021-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildCsvStringMatcher = exports.Csv = void 0;
+exports.Csv = void 0;
+exports.buildCsvStringMatcher = buildCsvStringMatcher;
 // Plugin implementation.
 const Csv = (jsonic, options) => {
     var _a;
@@ -94,8 +95,8 @@ const Csv = (jsonic, options) => {
             // See jsonic/src/defaults.ts; and util.deep merging
             // ignore: [
             IGNORE: [
-                strict ? null : undefined,
-                null,
+                strict ? null : undefined, // Handle #SP space
+                null, // Handle #LN newlines
                 undefined, // Still ignore #CM comments
             ],
         },
@@ -428,7 +429,6 @@ function buildCsvStringMatcher(csvopts) {
         };
     };
 }
-exports.buildCsvStringMatcher = buildCsvStringMatcher;
 // Default option values.
 Csv.defaults = {
     // Trim surrounding space. Default: false (!strict=>true)
