@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2021-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2021-2024 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Csv = void 0;
 exports.buildCsvStringMatcher = buildCsvStringMatcher;

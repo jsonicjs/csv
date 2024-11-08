@@ -1,4 +1,4 @@
-/* Copyright (c) 2021-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2021-2024 Richard Rodger, MIT License */
 
 // NOTE: Good example of use case for `r` control in open rule, where
 // close state only gets called on last rule.
@@ -14,8 +14,7 @@ import {
   Options,
   Lex,
   AltSpec,
-  // EMPTY,
-} from '@jsonic/jsonic-next'
+} from 'jsonic'
 
 // See defaults below for commentary.
 type CsvOptions = {

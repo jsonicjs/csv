@@ -1,22 +1,22 @@
 "use strict";
-/* Copyright (c) 2021-2022 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2021-2024 Richard Rodger and other contributors, MIT License */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = __importDefault(require("util"));
-const jsonic_next_1 = require("@jsonic/jsonic-next");
+const jsonic_1 = require("jsonic");
 const csv_1 = require("../csv");
 const Spectrum = require('csv-spectrum');
 const Fixtures = require('./csv-fixtures');
 describe('csv', () => {
     test('empty-records', async () => {
         // ignored by default
-        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const jo = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(jo('\n')).toEqual([]);
         expect(jo('a\n1\n\n2\n3\n\n\n4\n'))
             .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }]);
-        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        const ja = jsonic_1.Jsonic.make().use(csv_1.Csv, { object: false });
         expect(ja('\n')).toEqual([]);
         expect(ja('a\n1\n\n2\n3\n\n\n4\n'))
             .toEqual([['1'], ['2'], ['3'], ['4']]);
@@ -26,7 +26,7 @@ describe('csv', () => {
         expect(ja('\r\na,b\r\nA,B\r\n')).toEqual([['A', 'B']]);
         expect(ja('\r\n\r\na,b\r\nA,B\r\n\r\n')).toEqual([['A', 'B']]);
         // with option, empty creates record
-        const jon = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { record: { empty: true } });
+        const jon = jsonic_1.Jsonic.make().use(csv_1.Csv, { record: { empty: true } });
         expect(jon('\n')).toEqual([]);
         expect(jon('a\n1\n\n2\n3\n\n\n4\n'))
             .toEqual([
@@ -34,11 +34,11 @@ describe('csv', () => {
             { a: '' }, { a: '' }, { a: '4' }
         ]);
         // with comments
-        const joc = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { comment: true });
+        const joc = jsonic_1.Jsonic.make().use(csv_1.Csv, { comment: true });
         // console.log(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
         expect(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
             .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }]);
-        const jocn = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { comment: true, record: { empty: true } });
+        const jocn = jsonic_1.Jsonic.make().use(csv_1.Csv, { comment: true, record: { empty: true } });
         expect(jocn('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
             .toEqual([
             { a: '1' },
@@ -51,13 +51,13 @@ describe('csv', () => {
         ]);
     });
     test('header', async () => {
-        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const jo = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(jo('\n')).toEqual([]);
         expect(jo('\na,b\nA,B')).toEqual([{ a: 'A', b: 'B' }]);
-        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        const ja = jsonic_1.Jsonic.make().use(csv_1.Csv, { object: false });
         expect(ja('\n')).toEqual([]);
         expect(ja('\na,b\nA,B')).toEqual([['A', 'B']]);
-        const jon = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { header: false });
+        const jon = jsonic_1.Jsonic.make().use(csv_1.Csv, { header: false });
         expect(jon('\n')).toEqual([]);
         expect(jon('\na,b\nA,B')).toEqual([
             {
@@ -69,7 +69,7 @@ describe('csv', () => {
                 "field~1": "B",
             },
         ]);
-        const jan = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { header: false, object: false });
+        const jan = jsonic_1.Jsonic.make().use(csv_1.Csv, { header: false, object: false });
         expect(jan('\n')).toEqual([]);
         expect(jan('\na,b\nA,B')).toEqual([
             [
@@ -81,7 +81,7 @@ describe('csv', () => {
                 "B",
             ],
         ]);
-        const jonf = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+        const jonf = jsonic_1.Jsonic.make().use(csv_1.Csv, {
             header: false,
             field: { names: ['a', 'b'] },
         });
@@ -98,7 +98,7 @@ describe('csv', () => {
         ]);
     });
     test('comma', async () => {
-        const jo = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const jo = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(jo('\na')).toEqual([]);
         expect(jo('a\n1,')).toEqual([{ a: '1', 'field~1': '' }]);
         expect(jo('a\n,1')).toEqual([{ a: '', 'field~1': '1' }]);
@@ -109,7 +109,7 @@ describe('csv', () => {
         expect(jo('a,b\n1,2,\n')).toEqual([{ a: '1', b: '2', 'field~2': '' }]);
         expect(jo('a,b\n,1,2\n')).toEqual([{ a: '', b: '1', 'field~2': '2' }]);
         expect(jo('\na\n')).toEqual([]);
-        const ja = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { object: false });
+        const ja = jsonic_1.Jsonic.make().use(csv_1.Csv, { object: false });
         expect(ja('a\n1,')).toEqual([['1', '']]);
         expect(ja('a\n,1')).toEqual([['', '1']]);
         expect(ja('a,b\n1,2,')).toEqual([['1', '2', '']]);
@@ -117,7 +117,7 @@ describe('csv', () => {
         expect(ja('\n1')).toEqual([]);
     });
     test('separators', async () => {
-        const jd = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+        const jd = jsonic_1.Jsonic.make().use(csv_1.Csv, {
             field: {
                 separation: '|'
             }
@@ -126,7 +126,7 @@ describe('csv', () => {
             { a: 'A', b: 'B', c: 'C' },
             { a: 'AA', b: 'BB', c: 'CC' },
         ]);
-        const jD = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+        const jD = jsonic_1.Jsonic.make().use(csv_1.Csv, {
             field: {
                 separation: '~~'
             }
@@ -135,7 +135,7 @@ describe('csv', () => {
             { a: 'A', b: 'B', c: 'C' },
             { a: 'AA', b: 'BB', c: 'CC' },
         ]);
-        const jn = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+        const jn = jsonic_1.Jsonic.make().use(csv_1.Csv, {
             record: {
                 separators: '%'
             }
@@ -146,7 +146,7 @@ describe('csv', () => {
         ]);
     });
     test('double-quote', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\n"b"')).toEqual([{ a: 'b' }]);
         expect(j('a\n"""b"')).toEqual([{ a: '"b' }]);
         expect(j('a\n"b"""')).toEqual([{ a: 'b"' }]);
@@ -162,7 +162,7 @@ describe('csv', () => {
         expect(j('a\n"""""b"""""')).toEqual([{ a: '""b""' }]);
     });
     test('trim', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\n b')).toEqual([{ a: ' b' }]);
         expect(j('a\nb ')).toEqual([{ a: 'b ' }]);
         expect(j('a\n b ')).toEqual([{ a: ' b ' }]);
@@ -173,7 +173,7 @@ describe('csv', () => {
         expect(j('a\n b c ')).toEqual([{ a: ' b c ' }]);
         expect(j('a\n  b c   ')).toEqual([{ a: '  b c   ' }]);
         expect(j('a\n \tb c \t ')).toEqual([{ a: ' \tb c \t ' }]);
-        const jt = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { trim: true });
+        const jt = jsonic_1.Jsonic.make().use(csv_1.Csv, { trim: true });
         expect(jt('a\n b')).toEqual([{ a: 'b' }]);
         expect(jt('a\nb ')).toEqual([{ a: 'b' }]);
         expect(jt('a\n b ')).toEqual([{ a: 'b' }]);
@@ -186,33 +186,33 @@ describe('csv', () => {
         expect(jt('a\n \tb c \t ')).toEqual([{ a: 'b c' }]);
     });
     test('comment', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\n# b')).toEqual([{ a: '# b' }]);
         expect(j('a\n b #c')).toEqual([{ a: ' b #c' }]);
-        const jc = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { comment: true });
+        const jc = jsonic_1.Jsonic.make().use(csv_1.Csv, { comment: true });
         expect(jc('a\n# b')).toEqual([]);
         expect(jc('a\n b #c')).toEqual([{ a: ' b ' }]);
-        const jt = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { strict: false });
+        const jt = jsonic_1.Jsonic.make().use(csv_1.Csv, { strict: false });
         expect(jt('a\n# b')).toEqual([]);
         expect(jt('a\n b ')).toEqual([{ a: 'b' }]);
     });
     test('number', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\n1')).toEqual([{ a: '1' }]);
         expect(j('a\n1e2')).toEqual([{ a: '1e2' }]);
-        const jn = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { number: true });
+        const jn = jsonic_1.Jsonic.make().use(csv_1.Csv, { number: true });
         expect(jn('a\n1')).toEqual([{ a: 1 }]);
         expect(jn('a\n1e2')).toEqual([{ a: 100 }]);
-        const jt = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { strict: false });
+        const jt = jsonic_1.Jsonic.make().use(csv_1.Csv, { strict: false });
         expect(jt('a\n1')).toEqual([{ a: 1 }]);
         expect(jt('a\n1e2')).toEqual([{ a: 100 }]);
     });
     test('value', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         expect(j('a\ntrue')).toEqual([{ a: 'true' }]);
         expect(j('a\nfalse')).toEqual([{ a: 'false' }]);
         expect(j('a\nnull')).toEqual([{ a: 'null' }]);
-        const jv = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { value: true });
+        const jv = jsonic_1.Jsonic.make().use(csv_1.Csv, { value: true });
         expect(jv('a\ntrue')).toEqual([{ a: true }]);
         expect(jv('a\nfalse')).toEqual([{ a: false }]);
         expect(jv('a\nnull')).toEqual([{ a: null }]);
@@ -220,7 +220,7 @@ describe('csv', () => {
     test('stream', (fin) => {
         let tmp = {};
         let data;
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, {
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv, {
             stream: (what, record) => {
                 if ('start' === what) {
                     data = [];
@@ -244,7 +244,7 @@ describe('csv', () => {
         j('a,b\n1,2\n3,4\n5,6');
     });
     test('unstrict', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv, { strict: false });
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv, { strict: false });
         let d0 = j(`a,b,c
 true,[1,2],{x:{y:"q\\"w"}}
  x , 'y\\'y', "z\\"z"
@@ -271,7 +271,7 @@ true,[1,2],{x:{y:"q\\"w"}}
         expect(() => j('a\n{x:1}y')).toThrow('unexpected');
     });
     test('spectrum', async () => {
-        const j = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const j = jsonic_1.Jsonic.make().use(csv_1.Csv);
         const tests = await util_1.default.promisify(Spectrum)();
         for (let i = 0; i < tests.length; i++) {
             let test = tests[i];
@@ -288,14 +288,14 @@ true,[1,2],{x:{y:"q\\"w"}}
         }
     });
     test('fixtures', async () => {
-        const csv = jsonic_next_1.Jsonic.make().use(csv_1.Csv);
+        const csv = jsonic_1.Jsonic.make().use(csv_1.Csv);
         Object.entries(Fixtures).map((fixture) => {
             let name = fixture[0];
             let spec = fixture[1];
             try {
                 let parser = csv;
                 if (spec.opt) {
-                    let j = spec.make ? spec.make(jsonic_next_1.Jsonic) : jsonic_next_1.Jsonic.make();
+                    let j = spec.make ? spec.make(jsonic_1.Jsonic) : jsonic_1.Jsonic.make();
                     parser = j.use(csv_1.Csv, spec.opt);
                 }
                 let raw = null != spec.rawref ? Fixtures[spec.rawref].raw : spec.raw;

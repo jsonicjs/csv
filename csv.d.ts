@@ -1,4 +1,4 @@
-import { Plugin, Config, Options, Lex } from '@jsonic/jsonic-next';
+import { Plugin, Config, Options, Lex } from 'jsonic';
 type CsvOptions = {
     trim: boolean | null;
     comment: boolean | null;
@@ -25,6 +25,6 @@ type CsvOptions = {
     };
 };
 declare const Csv: Plugin;
-declare function buildCsvStringMatcher(csvopts: CsvOptions): (cfg: Config, _opts: Options) => (lex: Lex) => import("@jsonic/jsonic-next").Token | undefined;
+declare function buildCsvStringMatcher(csvopts: CsvOptions): (cfg: Config, _opts: Options) => (lex: Lex) => import("jsonic").Token | undefined;
 export { Csv, buildCsvStringMatcher };
 export type { CsvOptions };
