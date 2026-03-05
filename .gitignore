@@ -2,6 +2,7 @@ lib-cov
 *.seed
 *.log
 *.csv
+!test/fixtures/*.csv
 *.dat
 *.out
 *.pid
