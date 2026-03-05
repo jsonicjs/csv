@@ -1,314 +1,313 @@
 /* Copyright (c) 2021-2024 Richard Rodger and other contributors, MIT License */
 
+import { describe, test } from 'node:test'
+import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import Util from 'util'
 
 import { Jsonic } from 'jsonic'
-import { Csv } from '../csv'
+import { Csv } from '../dist/csv'
 
 const Spectrum = require('csv-spectrum')
-const Fixtures = require('./csv-fixtures')
 
+const fixturesDir = join(__dirname, '..', 'test', 'fixtures')
+const manifest = JSON.parse(
+  readFileSync(join(fixturesDir, 'manifest.json'), 'utf8'),
+)
 
 describe('csv', () => {
-
   test('empty-records', async () => {
-
     // ignored by default
 
     const jo = Jsonic.make().use(Csv)
-    expect(jo('\n')).toEqual([])
-    expect(jo('a\n1\n\n2\n3\n\n\n4\n'))
-      .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }])
+    assert.deepEqual(jo('\n'), [])
+    assert.deepEqual(jo('a\n1\n\n2\n3\n\n\n4\n'), [
+      { a: '1' },
+      { a: '2' },
+      { a: '3' },
+      { a: '4' },
+    ])
 
     const ja = Jsonic.make().use(Csv, { object: false })
-    expect(ja('\n')).toEqual([])
-    expect(ja('a\n1\n\n2\n3\n\n\n4\n'))
-      .toEqual([['1'], ['2'], ['3'], ['4']])
+    assert.deepEqual(ja('\n'), [])
+    assert.deepEqual(ja('a\n1\n\n2\n3\n\n\n4\n'), [['1'], ['2'], ['3'], ['4']])
 
     // start and end also ignored
 
-    expect(jo('\r\na,b\r\nA,B\r\n')).toEqual([{ a: 'A', b: 'B' }])
-    expect(jo('\r\n\r\na,b\r\nA,B\r\n\r\n')).toEqual([{ a: 'A', b: 'B' }])
-    expect(ja('\r\na,b\r\nA,B\r\n')).toEqual([['A', 'B']])
-    expect(ja('\r\n\r\na,b\r\nA,B\r\n\r\n')).toEqual([['A', 'B']])
+    assert.deepEqual(jo('\r\na,b\r\nA,B\r\n'), [{ a: 'A', b: 'B' }])
+    assert.deepEqual(jo('\r\n\r\na,b\r\nA,B\r\n\r\n'), [{ a: 'A', b: 'B' }])
+    assert.deepEqual(ja('\r\na,b\r\nA,B\r\n'), [['A', 'B']])
+    assert.deepEqual(ja('\r\n\r\na,b\r\nA,B\r\n\r\n'), [['A', 'B']])
 
     // with option, empty creates record
 
     const jon = Jsonic.make().use(Csv, { record: { empty: true } })
-    expect(jon('\n')).toEqual([])
-    expect(jon('a\n1\n\n2\n3\n\n\n4\n'))
-      .toEqual([
-        { a: '1' }, { a: '' }, { a: '2' }, { a: '3' },
-        { a: '' }, { a: '' }, { a: '4' }
-      ])
-
-
+    assert.deepEqual(jon('\n'), [])
+    assert.deepEqual(jon('a\n1\n\n2\n3\n\n\n4\n'), [
+      { a: '1' },
+      { a: '' },
+      { a: '2' },
+      { a: '3' },
+      { a: '' },
+      { a: '' },
+      { a: '4' },
+    ])
 
     // with comments
 
     const joc = Jsonic.make().use(Csv, { comment: true })
     // console.log(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
-    expect(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
-      .toEqual([{ a: '1' }, { a: '2' }, { a: '3' }, { a: '4' }])
+    assert.deepEqual(joc('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'), [
+      { a: '1' },
+      { a: '2' },
+      { a: '3' },
+      { a: '4' },
+    ])
 
-    const jocn = Jsonic.make().use(Csv, { comment: true, record: { empty: true } })
-    expect(jocn('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'))
-      .toEqual([
-        { a: '1' },
-        { a: '' },
-        { a: '2' },
-        { a: '3' },
-        { a: '' },
-        { a: '' },
-        { a: '4' }
-      ])
+    const jocn = Jsonic.make().use(Csv, {
+      comment: true,
+      record: { empty: true },
+    })
+    assert.deepEqual(jocn('a#X\n1\n#Y\n2\n3\n\n#Z\n4\n#Q'), [
+      { a: '1' },
+      { a: '' },
+      { a: '2' },
+      { a: '3' },
+      { a: '' },
+      { a: '' },
+      { a: '4' },
+    ])
   })
-
 
   test('header', async () => {
     const jo = Jsonic.make().use(Csv)
-    expect(jo('\n')).toEqual([])
-    expect(jo('\na,b\nA,B')).toEqual([{ a: 'A', b: 'B' }])
+    assert.deepEqual(jo('\n'), [])
+    assert.deepEqual(jo('\na,b\nA,B'), [{ a: 'A', b: 'B' }])
 
     const ja = Jsonic.make().use(Csv, { object: false })
-    expect(ja('\n')).toEqual([])
-    expect(ja('\na,b\nA,B')).toEqual([['A', 'B']])
+    assert.deepEqual(ja('\n'), [])
+    assert.deepEqual(ja('\na,b\nA,B'), [['A', 'B']])
 
     const jon = Jsonic.make().use(Csv, { header: false })
-    expect(jon('\n')).toEqual([])
-    expect(jon('\na,b\nA,B')).toEqual([
+    assert.deepEqual(jon('\n'), [])
+    assert.deepEqual(jon('\na,b\nA,B'), [
       {
-        "field~0": "a",
-        "field~1": "b",
+        'field~0': 'a',
+        'field~1': 'b',
       },
       {
-        "field~0": "A",
-        "field~1": "B",
+        'field~0': 'A',
+        'field~1': 'B',
       },
     ])
 
     const jan = Jsonic.make().use(Csv, { header: false, object: false })
-    expect(jan('\n')).toEqual([])
-    expect(jan('\na,b\nA,B')).toEqual([
-      [
-        "a",
-        "b",
-      ],
-      [
-        "A",
-        "B",
-      ],
+    assert.deepEqual(jan('\n'), [])
+    assert.deepEqual(jan('\na,b\nA,B'), [
+      ['a', 'b'],
+      ['A', 'B'],
     ])
 
     const jonf = Jsonic.make().use(Csv, {
       header: false,
       field: { names: ['a', 'b'] },
     })
-    expect(jonf('\n')).toEqual([])
-    expect(jonf('\na,b\nA,B')).toEqual([
+    assert.deepEqual(jonf('\n'), [])
+    assert.deepEqual(jonf('\na,b\nA,B'), [
       {
-        "a": "a",
-        "b": "b",
+        a: 'a',
+        b: 'b',
       },
       {
-        "a": "A",
-        "b": "B",
+        a: 'A',
+        b: 'B',
       },
     ])
-
   })
-
 
   test('comma', async () => {
     const jo = Jsonic.make().use(Csv)
 
-    expect(jo('\na')).toEqual([])
-    expect(jo('a\n1,')).toEqual([{ a: '1', 'field~1': '' }])
-    expect(jo('a\n,1')).toEqual([{ a: '', 'field~1': '1' }])
-    expect(jo('a,b\n1,2,')).toEqual([{ a: '1', b: '2', 'field~2': '' }])
-    expect(jo('a,b\n,1,2')).toEqual([{ a: '', b: '1', 'field~2': '2' }])
+    assert.deepEqual(jo('\na'), [])
+    assert.deepEqual(jo('a\n1,'), [{ a: '1', 'field~1': '' }])
+    assert.deepEqual(jo('a\n,1'), [{ a: '', 'field~1': '1' }])
+    assert.deepEqual(jo('a,b\n1,2,'), [{ a: '1', b: '2', 'field~2': '' }])
+    assert.deepEqual(jo('a,b\n,1,2'), [{ a: '', b: '1', 'field~2': '2' }])
 
-    expect(jo('a\n1,\n')).toEqual([{ a: '1', 'field~1': '' }])
-    expect(jo('a\n,1\n')).toEqual([{ a: '', 'field~1': '1' }])
-    expect(jo('a,b\n1,2,\n')).toEqual([{ a: '1', b: '2', 'field~2': '' }])
-    expect(jo('a,b\n,1,2\n')).toEqual([{ a: '', b: '1', 'field~2': '2' }])
-    expect(jo('\na\n')).toEqual([])
+    assert.deepEqual(jo('a\n1,\n'), [{ a: '1', 'field~1': '' }])
+    assert.deepEqual(jo('a\n,1\n'), [{ a: '', 'field~1': '1' }])
+    assert.deepEqual(jo('a,b\n1,2,\n'), [{ a: '1', b: '2', 'field~2': '' }])
+    assert.deepEqual(jo('a,b\n,1,2\n'), [{ a: '', b: '1', 'field~2': '2' }])
+    assert.deepEqual(jo('\na\n'), [])
 
     const ja = Jsonic.make().use(Csv, { object: false })
 
-    expect(ja('a\n1,')).toEqual([['1', '']])
-    expect(ja('a\n,1')).toEqual([['', '1']])
-    expect(ja('a,b\n1,2,')).toEqual([['1', '2', '']])
-    expect(ja('a,b\n,1,2')).toEqual([['', '1', '2']])
-    expect(ja('\n1')).toEqual([])
+    assert.deepEqual(ja('a\n1,'), [['1', '']])
+    assert.deepEqual(ja('a\n,1'), [['', '1']])
+    assert.deepEqual(ja('a,b\n1,2,'), [['1', '2', '']])
+    assert.deepEqual(ja('a,b\n,1,2'), [['', '1', '2']])
+    assert.deepEqual(ja('\n1'), [])
   })
-
 
   test('separators', async () => {
     const jd = Jsonic.make().use(Csv, {
       field: {
-        separation: '|'
-      }
+        separation: '|',
+      },
     })
 
-    expect(jd('a|b|c\nA|B|C\nAA|BB|CC')).toEqual([
+    assert.deepEqual(jd('a|b|c\nA|B|C\nAA|BB|CC'), [
       { a: 'A', b: 'B', c: 'C' },
       { a: 'AA', b: 'BB', c: 'CC' },
     ])
 
     const jD = Jsonic.make().use(Csv, {
       field: {
-        separation: '~~'
-      }
+        separation: '~~',
+      },
     })
 
-    expect(jD('a~~b~~c\nA~~B~~C\nAA~~BB~~CC')).toEqual([
+    assert.deepEqual(jD('a~~b~~c\nA~~B~~C\nAA~~BB~~CC'), [
       { a: 'A', b: 'B', c: 'C' },
       { a: 'AA', b: 'BB', c: 'CC' },
     ])
 
     const jn = Jsonic.make().use(Csv, {
       record: {
-        separators: '%'
-      }
+        separators: '%',
+      },
     })
 
-    expect(jn('a,b,c%A,B,C%AA,BB,CC')).toEqual([
+    assert.deepEqual(jn('a,b,c%A,B,C%AA,BB,CC'), [
       { a: 'A', b: 'B', c: 'C' },
       { a: 'AA', b: 'BB', c: 'CC' },
     ])
-
   })
-
 
   test('double-quote', async () => {
     const j = Jsonic.make().use(Csv)
 
-    expect(j('a\n"b"')).toEqual([{ a: 'b' }])
+    assert.deepEqual(j('a\n"b"'), [{ a: 'b' }])
 
-    expect(j('a\n"""b"')).toEqual([{ a: '"b' }])
-    expect(j('a\n"b"""')).toEqual([{ a: 'b"' }])
-    expect(j('a\n"""b"""')).toEqual([{ a: '"b"' }])
-    expect(j('a\n"b""c"')).toEqual([{ a: 'b"c' }])
+    assert.deepEqual(j('a\n"""b"'), [{ a: '"b' }])
+    assert.deepEqual(j('a\n"b"""'), [{ a: 'b"' }])
+    assert.deepEqual(j('a\n"""b"""'), [{ a: '"b"' }])
+    assert.deepEqual(j('a\n"b""c"'), [{ a: 'b"c' }])
 
-    expect(j('a\n"b""c""d"')).toEqual([{ a: 'b"c"d' }])
-    expect(j('a\n"b""c""d""e"')).toEqual([{ a: 'b"c"d"e' }])
+    assert.deepEqual(j('a\n"b""c""d"'), [{ a: 'b"c"d' }])
+    assert.deepEqual(j('a\n"b""c""d""e"'), [{ a: 'b"c"d"e' }])
 
-    expect(j('a\n"""b"')).toEqual([{ a: '"b' }])
-    expect(j('a\n"b"""')).toEqual([{ a: 'b"' }])
-    expect(j('a\n"""b"""')).toEqual([{ a: '"b"' }])
+    assert.deepEqual(j('a\n"""b"'), [{ a: '"b' }])
+    assert.deepEqual(j('a\n"b"""'), [{ a: 'b"' }])
+    assert.deepEqual(j('a\n"""b"""'), [{ a: '"b"' }])
 
-    expect(j('a\n"""""b"')).toEqual([{ a: '""b' }])
-    expect(j('a\n"b"""""')).toEqual([{ a: 'b""' }])
-    expect(j('a\n"""""b"""""')).toEqual([{ a: '""b""' }])
+    assert.deepEqual(j('a\n"""""b"'), [{ a: '""b' }])
+    assert.deepEqual(j('a\n"b"""""'), [{ a: 'b""' }])
+    assert.deepEqual(j('a\n"""""b"""""'), [{ a: '""b""' }])
   })
-
 
   test('trim', async () => {
     const j = Jsonic.make().use(Csv)
 
-    expect(j('a\n b')).toEqual([{ a: ' b' }])
-    expect(j('a\nb ')).toEqual([{ a: 'b ' }])
-    expect(j('a\n b ')).toEqual([{ a: ' b ' }])
-    expect(j('a\n  b   ')).toEqual([{ a: '  b   ' }])
-    expect(j('a\n \tb \t ')).toEqual([{ a: ' \tb \t ' }])
+    assert.deepEqual(j('a\n b'), [{ a: ' b' }])
+    assert.deepEqual(j('a\nb '), [{ a: 'b ' }])
+    assert.deepEqual(j('a\n b '), [{ a: ' b ' }])
+    assert.deepEqual(j('a\n  b   '), [{ a: '  b   ' }])
+    assert.deepEqual(j('a\n \tb \t '), [{ a: ' \tb \t ' }])
 
-    expect(j('a\n b c')).toEqual([{ a: ' b c' }])
-    expect(j('a\nb c ')).toEqual([{ a: 'b c ' }])
-    expect(j('a\n b c ')).toEqual([{ a: ' b c ' }])
-    expect(j('a\n  b c   ')).toEqual([{ a: '  b c   ' }])
-    expect(j('a\n \tb c \t ')).toEqual([{ a: ' \tb c \t ' }])
+    assert.deepEqual(j('a\n b c'), [{ a: ' b c' }])
+    assert.deepEqual(j('a\nb c '), [{ a: 'b c ' }])
+    assert.deepEqual(j('a\n b c '), [{ a: ' b c ' }])
+    assert.deepEqual(j('a\n  b c   '), [{ a: '  b c   ' }])
+    assert.deepEqual(j('a\n \tb c \t '), [{ a: ' \tb c \t ' }])
 
     const jt = Jsonic.make().use(Csv, { trim: true })
 
-    expect(jt('a\n b')).toEqual([{ a: 'b' }])
-    expect(jt('a\nb ')).toEqual([{ a: 'b' }])
-    expect(jt('a\n b ')).toEqual([{ a: 'b' }])
-    expect(jt('a\n  b   ')).toEqual([{ a: 'b' }])
-    expect(jt('a\n \tb \t ')).toEqual([{ a: 'b' }])
+    assert.deepEqual(jt('a\n b'), [{ a: 'b' }])
+    assert.deepEqual(jt('a\nb '), [{ a: 'b' }])
+    assert.deepEqual(jt('a\n b '), [{ a: 'b' }])
+    assert.deepEqual(jt('a\n  b   '), [{ a: 'b' }])
+    assert.deepEqual(jt('a\n \tb \t '), [{ a: 'b' }])
 
-    expect(jt('a\n b c')).toEqual([{ a: 'b c' }])
-    expect(jt('a\nb c ')).toEqual([{ a: 'b c' }])
-    expect(jt('a\n b c ')).toEqual([{ a: 'b c' }])
-    expect(jt('a\n  b c   ')).toEqual([{ a: 'b c' }])
-    expect(jt('a\n \tb c \t ')).toEqual([{ a: 'b c' }])
+    assert.deepEqual(jt('a\n b c'), [{ a: 'b c' }])
+    assert.deepEqual(jt('a\nb c '), [{ a: 'b c' }])
+    assert.deepEqual(jt('a\n b c '), [{ a: 'b c' }])
+    assert.deepEqual(jt('a\n  b c   '), [{ a: 'b c' }])
+    assert.deepEqual(jt('a\n \tb c \t '), [{ a: 'b c' }])
   })
-
 
   test('comment', async () => {
     const j = Jsonic.make().use(Csv)
-    expect(j('a\n# b')).toEqual([{ a: '# b' }])
-    expect(j('a\n b #c')).toEqual([{ a: ' b #c' }])
+    assert.deepEqual(j('a\n# b'), [{ a: '# b' }])
+    assert.deepEqual(j('a\n b #c'), [{ a: ' b #c' }])
 
     const jc = Jsonic.make().use(Csv, { comment: true })
-    expect(jc('a\n# b')).toEqual([])
-    expect(jc('a\n b #c')).toEqual([{ a: ' b ' }])
+    assert.deepEqual(jc('a\n# b'), [])
+    assert.deepEqual(jc('a\n b #c'), [{ a: ' b ' }])
 
     const jt = Jsonic.make().use(Csv, { strict: false })
-    expect(jt('a\n# b')).toEqual([])
-    expect(jt('a\n b ')).toEqual([{ a: 'b' }])
+    assert.deepEqual(jt('a\n# b'), [])
+    assert.deepEqual(jt('a\n b '), [{ a: 'b' }])
   })
-
 
   test('number', async () => {
     const j = Jsonic.make().use(Csv)
-    expect(j('a\n1')).toEqual([{ a: '1' }])
-    expect(j('a\n1e2')).toEqual([{ a: '1e2' }])
+    assert.deepEqual(j('a\n1'), [{ a: '1' }])
+    assert.deepEqual(j('a\n1e2'), [{ a: '1e2' }])
 
     const jn = Jsonic.make().use(Csv, { number: true })
-    expect(jn('a\n1')).toEqual([{ a: 1 }])
-    expect(jn('a\n1e2')).toEqual([{ a: 100 }])
+    assert.deepEqual(jn('a\n1'), [{ a: 1 }])
+    assert.deepEqual(jn('a\n1e2'), [{ a: 100 }])
 
     const jt = Jsonic.make().use(Csv, { strict: false })
-    expect(jt('a\n1')).toEqual([{ a: 1 }])
-    expect(jt('a\n1e2')).toEqual([{ a: 100 }])
+    assert.deepEqual(jt('a\n1'), [{ a: 1 }])
+    assert.deepEqual(jt('a\n1e2'), [{ a: 100 }])
   })
-
 
   test('value', async () => {
     const j = Jsonic.make().use(Csv)
-    expect(j('a\ntrue')).toEqual([{ a: 'true' }])
-    expect(j('a\nfalse')).toEqual([{ a: 'false' }])
-    expect(j('a\nnull')).toEqual([{ a: 'null' }])
+    assert.deepEqual(j('a\ntrue'), [{ a: 'true' }])
+    assert.deepEqual(j('a\nfalse'), [{ a: 'false' }])
+    assert.deepEqual(j('a\nnull'), [{ a: 'null' }])
 
     const jv = Jsonic.make().use(Csv, { value: true })
-    expect(jv('a\ntrue')).toEqual([{ a: true }])
-    expect(jv('a\nfalse')).toEqual([{ a: false }])
-    expect(jv('a\nnull')).toEqual([{ a: null }])
+    assert.deepEqual(jv('a\ntrue'), [{ a: true }])
+    assert.deepEqual(jv('a\nfalse'), [{ a: false }])
+    assert.deepEqual(jv('a\nnull'), [{ a: null }])
   })
 
+  test('stream', () => {
+    return new Promise<void>((resolve) => {
+      let tmp: any = {}
+      let data: any[]
+      const j = Jsonic.make().use(Csv, {
+        stream: (what: string, record?: any[]) => {
+          if ('start' === what) {
+            data = []
+            tmp.start = Date.now()
+          } else if ('record' === what) {
+            data.push(record)
+          } else if ('end' === what) {
+            tmp.end = Date.now()
 
-  test('stream', (fin: any) => {
-    let tmp: any = {}
-    let data: any[]
-    const j = Jsonic.make().use(Csv, {
-      stream: (what: string, record?: any[]) => {
-        if ('start' === what) {
-          data = []
-          tmp.start = Date.now()
-        }
-        else if ('record' === what) {
-          data.push(record)
-        }
-        else if ('end' === what) {
-          tmp.end = Date.now()
+            assert.deepEqual(data, [
+              { a: '1', b: '2' },
+              { a: '3', b: '4' },
+              { a: '5', b: '6' },
+            ])
 
-          expect(data).toEqual([
-            { a: '1', b: '2' },
-            { a: '3', b: '4' },
-            { a: '5', b: '6' },
-          ])
+            assert.ok(tmp.start <= tmp.end)
 
-          expect(tmp.start <= tmp.end).toBeTruthy()
+            resolve()
+          }
+        },
+      })
 
-          fin()
-        }
-      }
+      j('a,b\n1,2\n3,4\n5,6')
     })
-
-    j('a,b\n1,2\n3,4\n5,6')
   })
-
 
   test('unstrict', async () => {
     const j = Jsonic.make().use(Csv, { strict: false })
@@ -316,13 +315,10 @@ describe('csv', () => {
 true,[1,2],{x:{y:"q\\"w"}}
  x , 'y\\'y', "z\\"z"
 `)
-    expect(d0).toEqual([
+    assert.deepEqual(d0, [
       {
         a: true,
-        b: [
-          1,
-          2,
-        ],
+        b: [1, 2],
         c: {
           x: {
             y: 'q"w',
@@ -331,14 +327,13 @@ true,[1,2],{x:{y:"q\\"w"}}
       },
       {
         a: 'x',
-        b: 'y\'y',
-        c: 'z"z'
-      }
+        b: "y'y",
+        c: 'z"z',
+      },
     ])
 
-    expect(() => j('a\n{x:1}y')).toThrow('unexpected')
+    assert.throws(() => j('a\n{x:1}y'), /unexpected/)
   })
-
 
   test('spectrum', async () => {
     const j = Jsonic.make().use(Csv)
@@ -356,38 +351,42 @@ true,[1,2],{x:{y:"q\\"w"}}
         continue
       }
 
-      expect({ [testname]: res }).toEqual({ [testname]: json })
+      assert.deepEqual({ [testname]: res }, { [testname]: json })
     }
   })
 
-
   test('fixtures', async () => {
     const csv = Jsonic.make().use(Csv)
-    Object.entries(Fixtures).map((fixture) => {
-      let name: string = fixture[0]
-      let spec: any = fixture[1]
+    for (const [key, entry] of Object.entries(manifest) as [string, any][]) {
+      const name: string = entry.name
 
-      try {
-        let parser = csv
-        if (spec.opt) {
-          let j = spec.make ? spec.make(Jsonic) : Jsonic.make()
-          parser = j.use(Csv, spec.opt)
-        }
-        let raw = null != spec.rawref ? Fixtures[spec.rawref].raw : spec.raw
-        let out = parser(raw)
-        expect(out).toEqual(spec.out)
+      let parser = csv
+      if (entry.opt) {
+        let j = entry.jsonicOpt ? Jsonic.make(entry.jsonicOpt) : Jsonic.make()
+        parser = j.use(Csv, entry.opt)
       }
-      catch (e: any) {
-        if (spec.err) {
-          expect(spec.err).toEqual(e.code)
+      const csvFile = entry.csvFile || key
+      const raw = readFileSync(join(fixturesDir, csvFile + '.csv'), 'utf8')
+
+      if (entry.err) {
+        try {
+          parser(raw)
+          assert.fail('Expected error ' + entry.err + ' for fixture: ' + name)
+        } catch (e: any) {
+          assert.deepEqual(entry.err, e.code)
         }
-        else {
+      } else {
+        try {
+          const expected = JSON.parse(
+            readFileSync(join(fixturesDir, key + '.json'), 'utf8'),
+          )
+          const out = parser(raw)
+          assert.deepEqual(out, expected)
+        } catch (e: any) {
           console.error('FIXTURE: ' + name)
           throw e
         }
       }
-    })
+    }
   })
 })
-
-
