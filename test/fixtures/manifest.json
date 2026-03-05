@@ -1,0 +1,88 @@
+{
+  "basic": {
+    "name": "basic two-column CSV"
+  },
+  "basic-array": {
+    "name": "basic CSV with array output",
+    "csvFile": "basic",
+    "opt": { "object": false }
+  },
+  "basic-noheader": {
+    "name": "basic CSV without header",
+    "csvFile": "basic",
+    "opt": { "header": false }
+  },
+  "basic-noheader-names": {
+    "name": "basic CSV without header with custom field names",
+    "csvFile": "basic",
+    "opt": { "header": false, "field": { "names": ["x", "y"] } }
+  },
+  "multirow": {
+    "name": "multi-row CSV"
+  },
+  "quoted-simple": {
+    "name": "simple quoted fields"
+  },
+  "quoted-escape": {
+    "name": "double-quote escaping"
+  },
+  "quoted-newline": {
+    "name": "quoted fields with embedded newlines"
+  },
+  "empty-fields": {
+    "name": "empty and extra fields"
+  },
+  "crlf": {
+    "name": "CRLF line endings"
+  },
+  "trailing-newline": {
+    "name": "trailing newline handling"
+  },
+  "leading-newline": {
+    "name": "leading newline handling"
+  },
+  "comment-line": {
+    "name": "comment lines",
+    "opt": { "comment": true }
+  },
+  "comment-inline": {
+    "name": "inline comments",
+    "opt": { "comment": true }
+  },
+  "trim": {
+    "name": "trimmed values",
+    "opt": { "trim": true }
+  },
+  "number": {
+    "name": "number parsing",
+    "opt": { "number": true }
+  },
+  "value": {
+    "name": "value keyword parsing",
+    "opt": { "value": true }
+  },
+  "pipe-separator": {
+    "name": "pipe field separator",
+    "opt": { "field": { "separation": "|" } }
+  },
+  "multi-char-separator": {
+    "name": "multi-character field separator",
+    "opt": { "field": { "separation": "~~" } }
+  },
+  "record-separator": {
+    "name": "custom record separator",
+    "opt": { "record": { "separators": "%" } }
+  },
+  "empty-records": {
+    "name": "preserve empty records",
+    "opt": { "record": { "empty": true } }
+  },
+  "empty-records-default": {
+    "name": "skip empty records by default",
+    "csvFile": "empty-records"
+  },
+  "comment-empty": {
+    "name": "comments with empty records",
+    "opt": { "comment": true, "record": { "empty": true } }
+  }
+}
