@@ -43,6 +43,17 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 		delete(cfg.FixedTokens, ":")
 		cfg.SortFixedTokens()
 
+		// When the CSV string matcher is active, disable the built-in string
+		// matcher and remove quote chars from string chars. This way:
+		// - The CSV string matcher (custom, priority 100000) handles proper quoted fields
+		// - Mid-field quotes (B" in A,B",C) are treated as literal text by the text matcher
+		if useCsvString {
+			cfg.StringLex = false
+			for ch := range cfg.StringChars {
+				delete(cfg.StringChars, ch)
+			}
+		}
+
 		// Exclude jsonic and imp rule groups.
 		j.Exclude("jsonic", "imp")
 	} else {
@@ -281,6 +292,24 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 					rawRecord = childArr
 				} else {
 					rawRecord = []any{}
+				}
+
+				// Validate field count if exact mode enabled
+				if opts.fieldExact && fieldSlice != nil {
+					if len(rawRecord) != len(fieldSlice) {
+						errCode := "csv_missing_field"
+						if len(rawRecord) > len(fieldSlice) {
+							errCode = "csv_extra_field"
+						}
+						errTkn := &jsonic.Token{
+							Name: "#BD",
+							Tin:  jsonic.TinBD,
+							Why:  errCode,
+							Src:  errCode,
+						}
+						ctx.ParseErr = errTkn
+						return
+					}
 				}
 
 				if objres {
@@ -596,7 +625,8 @@ func tokenStr(t *jsonic.Token) string {
 // double-quote escaping: "a""b" → a"b
 func buildCsvStringMatcher(opts *resolved, j *jsonic.Jsonic) jsonic.LexMatcher {
 	quoteChar := opts.quote
-	return func(lex *jsonic.Lex) *jsonic.Token {
+	cfg := j.Config()
+	return func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
 		pnt := lex.Cursor()
 		src := lex.Src
 		sI := pnt.SI
@@ -609,6 +639,17 @@ func buildCsvStringMatcher(opts *resolved, j *jsonic.Jsonic) jsonic.LexMatcher {
 		// Check if we're at a quote character
 		if !strings.HasPrefix(src[sI:], quoteChar) {
 			return nil
+		}
+
+		// Only match when quote is at the start of a field:
+		// beginning of input, after a comma/separator, after a newline, or after whitespace.
+		if sI > 0 {
+			prev := rune(src[sI-1])
+			_, isFixed := cfg.FixedTokens[string(prev)]
+			if !isFixed && !cfg.LineChars[prev] && !cfg.SpaceChars[prev] {
+				// Mid-field quote - don't match, let text matcher handle it
+				return nil
+			}
 		}
 
 		q := quoteChar
@@ -682,8 +723,14 @@ func buildCsvStringMatcher(opts *resolved, j *jsonic.Jsonic) jsonic.LexMatcher {
 			s.WriteString(src[bI:sI])
 		}
 
-		// Unterminated string
-		return nil
+		// Unterminated string - return a bad token
+		badSrc := src[pnt.SI:sI]
+		tkn := lex.Token("#BD", jsonic.TinBD, nil, badSrc)
+		tkn.Why = "unterminated_string"
+		pnt.SI = sI
+		pnt.RI = rI
+		pnt.CI = cI
+		return tkn
 	}
 }
 

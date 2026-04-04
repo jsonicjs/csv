@@ -13,10 +13,11 @@ import (
 
 // fixtureEntry represents one entry in the test manifest.
 type fixtureEntry struct {
-	Name    string         `json:"name"`
-	CsvFile string         `json:"csvFile,omitempty"`
-	Opt     map[string]any `json:"opt,omitempty"`
-	Err     string         `json:"err,omitempty"`
+	Name      string         `json:"name"`
+	CsvFile   string         `json:"csvFile,omitempty"`
+	Opt       map[string]any `json:"opt,omitempty"`
+	JsonicOpt map[string]any `json:"jsonicOpt,omitempty"`
+	Err       string         `json:"err,omitempty"`
 }
 
 func fixturesDir() string {
@@ -50,7 +51,7 @@ func TestFixtures(t *testing.T) {
 			}
 
 			opts := mapToOptions(entry.Opt)
-			result, err := Parse(string(csvData), opts)
+			result, err := parseWithJsonicOpt(string(csvData), opts, entry.JsonicOpt)
 			if err != nil {
 				if entry.Err != "" {
 					return // expected error
@@ -377,6 +378,106 @@ func TestRecordSeparators(t *testing.T) {
 		{"a": "A", "b": "B", "c": "C"},
 		{"a": "AA", "b": "BB", "c": "CC"},
 	})
+}
+
+// parseWithJsonicOpt parses CSV with optional jsonic-level options (custom comment defs, value defs, etc.)
+func parseWithJsonicOpt(src string, opts CsvOptions, jsonicOpt map[string]any) ([]any, error) {
+	if len(jsonicOpt) == 0 {
+		return Parse(src, opts)
+	}
+
+	r := resolve(&opts)
+
+	jopts := jsonic.Options{
+		Rule: &jsonic.RuleOptions{
+			Start: "csv",
+		},
+		Number: &jsonic.NumberOptions{
+			Lex: boolPtr(r.number),
+		},
+		Value: &jsonic.ValueOptions{
+			Lex: boolPtr(r.value),
+		},
+		Comment: &jsonic.CommentOptions{
+			Lex: boolPtr(r.comment),
+		},
+		Lex: &jsonic.LexOptions{
+			EmptyResult: []any{},
+		},
+	}
+
+	// Apply jsonicOpt: value.def
+	// Start with defaults and merge custom defs. A null value removes the def.
+	if valOpt, ok := jsonicOpt["value"].(map[string]any); ok {
+		if defMap, ok := valOpt["def"].(map[string]any); ok {
+			if jopts.Value == nil {
+				jopts.Value = &jsonic.ValueOptions{}
+			}
+			// Start with defaults
+			jopts.Value.Def = map[string]*jsonic.ValueDef{
+				"true":  {Val: true},
+				"false": {Val: false},
+				"null":  {Val: nil},
+			}
+			// Merge custom defs
+			for k, v := range defMap {
+				if v == nil {
+					// null means remove this def
+					delete(jopts.Value.Def, k)
+				} else if vm, ok := v.(map[string]any); ok {
+					jopts.Value.Def[k] = &jsonic.ValueDef{Val: vm["val"]}
+				}
+			}
+		}
+	}
+
+	// Apply jsonicOpt: comment.def
+	if cmtOpt, ok := jsonicOpt["comment"].(map[string]any); ok {
+		if defMap, ok := cmtOpt["def"].(map[string]any); ok {
+			if jopts.Comment == nil {
+				jopts.Comment = &jsonic.CommentOptions{}
+			}
+			jopts.Comment.Def = make(map[string]*jsonic.CommentDef)
+			for name, v := range defMap {
+				if cm, ok := v.(map[string]any); ok {
+					def := &jsonic.CommentDef{}
+					if start, ok := cm["start"].(string); ok {
+						def.Start = start
+					}
+					if end, ok := cm["end"].(string); ok {
+						def.End = end
+					} else {
+						// No end marker means line comment
+						def.Line = true
+					}
+					jopts.Comment.Def[name] = def
+				}
+			}
+		}
+	}
+
+	if r.recordSep != "" {
+		jopts.Line = &jsonic.LineOptions{
+			Chars:    r.recordSep,
+			RowChars: r.recordSep,
+		}
+	}
+
+	j := jsonic.Make(jopts)
+	pluginMap := optionsToMap(&opts)
+	j.Use(Csv, pluginMap)
+
+	result, err := j.Parse(src)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return []any{}, nil
+	}
+	if arr, ok := result.([]any); ok {
+		return arr, nil
+	}
+	return []any{}, nil
 }
 
 // Helper functions
