@@ -20,33 +20,30 @@
     "url": "git://github.com/jsonicjs/csv.git"
   },
   "scripts": {
-    "test": "node --test dist-test/csv.test.js",
-    "test-some": "node --test --test-name-pattern",
+    "test": "node --enable-source-maps --test \"dist-test/*.test.js\"",
+    "test-some": "node --enable-source-maps --test-name-pattern=\"$npm_config_pattern\" --test \"dist-test/*.test.js\"",
     "test-watch": "node --test --watch dist-test/csv.test.js",
+    "embed": "node embed-grammar.js",
     "watch": "tsc --build src test -w",
-    "doc": "jsonic-doc",
-    "build": "tsc --build src test",
-    "prettier": "prettier --write --no-semi --single-quote src/*.ts test/*.ts",
+    "build": "node embed-grammar.js && tsc --build src test",
     "clean": "rm -rf node_modules dist dist-test yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
-    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run doc && npm run repo-tag && npm publish --access public --registry https://registry.npmjs.org "
+    "repo-publish-quick": "npm run build && npm run test && npm run repo-tag && npm publish --access public --registry https://registry.npmjs.org "
   },
   "license": "MIT",
   "files": [
+    "src",
     "dist",
     "LICENSE"
   ],
   "devDependencies": {
-    "@jsonic/doc": "^0.0.9",
     "@types/node": "^25.3.3",
     "csv-spectrum": "^2.0.0",
-    "esbuild": "^0.27.3",
-    "prettier": "^3.8.1",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "jsonic": ">=2"
+    "jsonic": "^2.22.2"
   }
 }
