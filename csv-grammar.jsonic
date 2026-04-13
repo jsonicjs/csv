@@ -3,8 +3,8 @@
 # Function references (@ prefixed) are resolved against the refs map
 #
 # Token naming:
-#   #LN - line ending (TS uses modified IGNORE set; Go replaces with custom #RL)
-#   #SP - whitespace  (TS uses modified IGNORE set; Go replaces with custom #RS)
+#   #LN - line ending (non-ignored; TS modifies IGNORE set, Go overrides LN token set)
+#   #SP - whitespace  (non-ignored; TS modifies IGNORE set, Go overrides SP token set)
 #   #CA - comma / field separator
 #   #ZZ - end of input
 #   #VAL - token set: text, string, number, value literals

@@ -14,8 +14,8 @@ const grammarText = `
 # Function references (@ prefixed) are resolved against the refs map
 #
 # Token naming:
-#   #LN - line ending (TS uses modified IGNORE set; Go replaces with custom #RL)
-#   #SP - whitespace  (TS uses modified IGNORE set; Go replaces with custom #RS)
+#   #LN - line ending (non-ignored; TS modifies IGNORE set, Go overrides LN token set)
+#   #SP - whitespace  (non-ignored; TS modifies IGNORE set, Go overrides SP token set)
 #   #CA - comma / field separator
 #   #ZZ - end of input
 #   #VAL - token set: text, string, number, value literals
@@ -159,11 +159,18 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 		}
 	}
 
-	// Register custom token types that are NOT in jsonic's global IGNORE set.
-	RL := j.Token("#RL")
-	RS := j.Token("#RS")
+	// Register custom non-ignored token Tins for line and space.
+	// In Go, TinSetIGNORE is global and cannot be modified per-instance,
+	// so we use custom Tins that are NOT in the ignore set.
+	// Override the "LN" and "SP" token sets so that #LN and #SP in the
+	// shared grammar resolve to these custom Tins (matching the TS approach
+	// where the IGNORE set is modified per-instance).
+	lineTin := j.Token("#RL") // custom Tin, not in TinSetIGNORE
+	spaceTin := j.Token("#RS") // custom Tin, not in TinSetIGNORE
+	j.SetTokenSet("LN", []jsonic.Tin{lineTin})
+	j.SetTokenSet("SP", []jsonic.Tin{spaceTin})
 
-	// Intercept the line matcher: emit #RL instead of #LN.
+	// Intercept the line matcher: emit non-ignored line tokens.
 	cfg.LineCheck = func(lex *jsonic.Lex) *jsonic.LexCheckResult {
 		pnt := lex.Cursor()
 		src := lex.Src
@@ -188,13 +195,14 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 			}
 			sI++
 		}
-		tkn := lex.Token("#RL", RL, nil, src[startI:sI])
+		tkn := lex.Token("#LN", lineTin, nil, src[startI:sI])
 		pnt.SI = sI
 		pnt.RI = rI
 		pnt.CI = 1
 		return &jsonic.LexCheckResult{Done: true, Token: tkn}
 	}
 
+	// Intercept the space matcher: emit non-ignored space tokens.
 	cfg.SpaceCheck = func(lex *jsonic.Lex) *jsonic.LexCheckResult {
 		pnt := lex.Cursor()
 		src := lex.Src
@@ -211,20 +219,17 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 			sI++
 			cI++
 		}
-		tkn := lex.Token("#RS", RS, nil, src[startI:sI])
+		tkn := lex.Token("#SP", spaceTin, nil, src[startI:sI])
 		pnt.SI = sI
 		pnt.CI = cI
 		return &jsonic.LexCheckResult{Done: true, Token: tkn}
 	}
 
-	// Replace #LN -> #RL and #SP -> #RS in the grammar text for Go,
-	// since Go uses custom non-ignored tokens.
-	grammarGo := strings.ReplaceAll(grammarText, "#LN", "#RL")
-	grammarGo = strings.ReplaceAll(grammarGo, "#SP", "#RS")
-
 	// Parse the grammar text using a fresh jsonic instance.
+	// The grammar uses #LN and #SP which resolve to the custom non-ignored
+	// Tins via the overridden token sets above.
 	parser := jsonic.Make()
-	parsed, err := parser.Parse(grammarGo)
+	parsed, err := parser.Parse(grammarText)
 	if err != nil {
 		panic("failed to parse csv grammar: " + err.Error())
 	}
@@ -242,10 +247,10 @@ func Csv(j *jsonic.Jsonic, pluginOpts map[string]any) {
 		panic("failed to apply csv grammar: " + err.Error())
 	}
 
-	// Use our custom non-ignored tokens for rule definitions.
-	LN := RL
+	// Token Tins for the code-based rule definitions below.
+	LN := lineTin
 	CA := j.Token("#CA")
-	SP := RS
+	SP := spaceTin
 	ZZ := j.Token("#ZZ")
 	VAL := j.TokenSet("VAL")
 
