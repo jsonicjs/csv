@@ -46,8 +46,8 @@ const grammarText = `
 # Function references (@ prefixed) are resolved against the refs map
 #
 # Token naming:
-#   #LN - line ending (non-ignored; TS modifies IGNORE set, Go overrides LN token set)
-#   #SP - whitespace  (non-ignored; TS modifies IGNORE set, Go overrides SP token set)
+#   #LN - line ending (removed from per-instance IGNORE set)
+#   #SP - whitespace  (removed from per-instance IGNORE set in strict mode)
 #   #CA - comma / field separator
 #   #ZZ - end of input
 #   #VAL - token set: text, string, number, value literals
