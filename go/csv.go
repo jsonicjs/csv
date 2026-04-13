@@ -67,6 +67,172 @@ func boolOpt(p *bool, def bool) bool {
 	return def
 }
 
+// optionsToMap converts CsvOptions to a map[string]any for the plugin interface.
+func optionsToMap(o *CsvOptions) map[string]any {
+	m := make(map[string]any)
+	if o.Object != nil {
+		m["object"] = *o.Object
+	}
+	if o.Header != nil {
+		m["header"] = *o.Header
+	}
+	if o.Trim != nil {
+		m["trim"] = *o.Trim
+	}
+	if o.Comment != nil {
+		m["comment"] = *o.Comment
+	}
+	if o.Number != nil {
+		m["number"] = *o.Number
+	}
+	if o.Value != nil {
+		m["value"] = *o.Value
+	}
+	if o.Strict != nil {
+		m["strict"] = *o.Strict
+	}
+
+	if o.Field != nil {
+		fm := make(map[string]any)
+		if o.Field.Separation != "" {
+			fm["separation"] = o.Field.Separation
+		}
+		if o.Field.NonamePrefix != "" {
+			fm["nonameprefix"] = o.Field.NonamePrefix
+		}
+		fm["empty"] = o.Field.Empty
+		if o.Field.Exact {
+			fm["exact"] = true
+		}
+		if o.Field.Names != nil {
+			fm["names"] = o.Field.Names
+		}
+		m["field"] = fm
+	}
+	if o.Record != nil {
+		rm := make(map[string]any)
+		if o.Record.Separators != "" {
+			rm["separators"] = o.Record.Separators
+		}
+		if o.Record.Empty {
+			rm["empty"] = true
+		}
+		m["record"] = rm
+	}
+	if o.String != nil {
+		sm := make(map[string]any)
+		if o.String.Quote != "" {
+			sm["quote"] = o.String.Quote
+		}
+		if o.String.Csv != nil {
+			sm["csv"] = *o.String.Csv
+		}
+		m["string"] = sm
+	}
+	if o.Stream != nil {
+		m["_stream"] = o.Stream
+	}
+	return m
+}
+
+// mapToOptions converts a map[string]any (plugin options) to CsvOptions.
+func mapToOptions(m map[string]any) CsvOptions {
+	var o CsvOptions
+	if m == nil {
+		return o
+	}
+
+	if v, ok := m["object"]; ok {
+		b := toBool(v)
+		o.Object = &b
+	}
+	if v, ok := m["header"]; ok {
+		b := toBool(v)
+		o.Header = &b
+	}
+	if v, ok := m["trim"]; ok {
+		b := toBool(v)
+		o.Trim = &b
+	}
+	if v, ok := m["comment"]; ok {
+		b := toBool(v)
+		o.Comment = &b
+	}
+	if v, ok := m["number"]; ok {
+		b := toBool(v)
+		o.Number = &b
+	}
+	if v, ok := m["value"]; ok {
+		b := toBool(v)
+		o.Value = &b
+	}
+	if v, ok := m["strict"]; ok {
+		b := toBool(v)
+		o.Strict = &b
+	}
+
+	if fm, ok := m["field"].(map[string]any); ok {
+		o.Field = &FieldOptions{}
+		if v, ok := fm["separation"].(string); ok {
+			o.Field.Separation = v
+		}
+		if v, ok := fm["nonameprefix"].(string); ok {
+			o.Field.NonamePrefix = v
+		}
+		if v, ok := fm["empty"].(string); ok {
+			o.Field.Empty = v
+		}
+		if v, ok := fm["exact"].(bool); ok {
+			o.Field.Exact = v
+		}
+		if v, ok := fm["names"].([]any); ok {
+			for _, n := range v {
+				if s, ok := n.(string); ok {
+					o.Field.Names = append(o.Field.Names, s)
+				}
+			}
+		}
+		if v, ok := fm["names"].([]string); ok {
+			o.Field.Names = v
+		}
+	}
+
+	if rm, ok := m["record"].(map[string]any); ok {
+		o.Record = &RecordOptions{}
+		if v, ok := rm["separators"].(string); ok {
+			o.Record.Separators = v
+		}
+		if v, ok := rm["empty"].(bool); ok {
+			o.Record.Empty = v
+		}
+	}
+
+	if sm, ok := m["string"].(map[string]any); ok {
+		o.String = &StringOptions{}
+		if v, ok := sm["quote"].(string); ok {
+			o.String.Quote = v
+		}
+		if v, ok := sm["csv"].(bool); ok {
+			o.String.Csv = &v
+		}
+	}
+
+	if v, ok := m["_stream"].(StreamFunc); ok {
+		o.Stream = v
+	}
+
+	return o
+}
+
+func toBool(v any) bool {
+	switch b := v.(type) {
+	case bool:
+		return b
+	default:
+		return false
+	}
+}
+
 func resolve(o *CsvOptions) *resolved {
 	strict := boolOpt(o.Strict, true)
 	r := &resolved{
