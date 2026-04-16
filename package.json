@@ -39,11 +39,11 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.6.0",
     "csv-spectrum": "^2.0.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "jsonic": "^2.22.2"
+    "jsonic": ">=2"
   }
 }

@@ -378,6 +378,9 @@ fields per row are expected.`,
         // If not ignoring empty fields, don't consume LN used to close empty record.
         { s: [LN], b: 1 },
       ])
+      // Unconditional fallback to push elem — the default jsonic list rule gates
+      // its elem push on prev.u.implist which CSV's record rule does not set.
+      .open([{ p: 'elem' }], { append: true })
       .close([
         // LN ends record
         { s: [LN], b: 1 },

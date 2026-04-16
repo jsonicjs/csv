@@ -24,6 +24,24 @@ func fixturesDir() string {
 	return filepath.Join("..", "test", "fixtures")
 }
 
+// csvParse creates a jsonic instance with the Csv plugin and parses src.
+func csvParse(src string, opts ...map[string]any) ([]any, error) {
+	j := jsonic.Make()
+	j.UseDefaults(Csv, Defaults, opts...)
+
+	result, err := j.Parse(src)
+	if err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return []any{}, nil
+	}
+	if arr, ok := result.([]any); ok {
+		return arr, nil
+	}
+	return []any{}, nil
+}
+
 func TestFixtures(t *testing.T) {
 	dir := fixturesDir()
 	manifestPath := filepath.Join(dir, "manifest.json")
@@ -50,8 +68,7 @@ func TestFixtures(t *testing.T) {
 				t.Fatalf("Failed to read CSV file %s: %v", csvFile, err)
 			}
 
-			opts := mapToOptions(entry.Opt)
-			result, err := parseWithJsonicOpt(string(csvData), opts, entry.JsonicOpt)
+			result, err := parseFixture(string(csvData), entry.Opt, entry.JsonicOpt)
 			if err != nil {
 				if entry.Err != "" {
 					return // expected error
@@ -73,7 +90,6 @@ func TestFixtures(t *testing.T) {
 				t.Fatalf("Failed to parse expected JSON: %v", err)
 			}
 
-			// Normalize result for comparison
 			resultNorm := normalizeResult(result)
 			expectedNorm := normalizeJSON(expected)
 
@@ -87,9 +103,9 @@ func TestFixtures(t *testing.T) {
 	}
 }
 
-// TestPlugin verifies CSV parsing works through the MakeJsonic interface.
 func TestPlugin(t *testing.T) {
-	j := MakeJsonic()
+	j := jsonic.Make()
+	j.UseDefaults(Csv, Defaults)
 
 	result, err := j.Parse("a,b\n1,2\n3,4")
 	if err != nil {
@@ -105,17 +121,15 @@ func TestPlugin(t *testing.T) {
 		t.Fatalf("Expected 2 records, got %d", len(arr))
 	}
 
-	// Verify first record
 	r0 := toMap(arr[0])
 	if r0["a"] != "1" || r0["b"] != "2" {
 		t.Errorf("Record 0: expected {a:1,b:2}, got %v", r0)
 	}
 }
 
-// TestPluginWithOptions verifies MakeJsonic with options.
 func TestPluginWithOptions(t *testing.T) {
-	bFalse := false
-	j := MakeJsonic(CsvOptions{Object: &bFalse})
+	j := jsonic.Make()
+	j.UseDefaults(Csv, Defaults, map[string]any{"object": false})
 
 	result, err := j.Parse("a,b\n1,2")
 	if err != nil {
@@ -141,9 +155,9 @@ func TestPluginWithOptions(t *testing.T) {
 	}
 }
 
-// TestPluginEmpty verifies empty input returns empty array.
 func TestPluginEmpty(t *testing.T) {
-	j := MakeJsonic()
+	j := jsonic.Make()
+	j.UseDefaults(Csv, Defaults)
 
 	result, err := j.Parse("")
 	if err != nil {
@@ -160,13 +174,10 @@ func TestPluginEmpty(t *testing.T) {
 	}
 }
 
-// TestUsePlugin verifies j.Use(Csv) plugin interface works.
 func TestUsePlugin(t *testing.T) {
 	j := jsonic.Make()
 	j.Use(Csv, nil)
 
-	// The plugin modifies jsonic's grammar for CSV parsing.
-	// This test verifies the plugin doesn't panic.
 	result, err := j.Parse("a,b\n1,2")
 	if err != nil {
 		t.Logf("Plugin parse returned error (expected with basic plugin): %v", err)
@@ -174,42 +185,33 @@ func TestUsePlugin(t *testing.T) {
 	_ = result
 }
 
-// TestEmptyRecords verifies empty record handling matches TS behavior.
 func TestEmptyRecords(t *testing.T) {
-	// Default: empty records ignored
-	result, _ := Parse("a\n1\n\n2\n3\n\n\n4\n")
+	result, _ := csvParse("a\n1\n\n2\n3\n\n\n4\n")
 	assertRecords(t, "empty-ignored", result, []map[string]any{
 		{"a": "1"}, {"a": "2"}, {"a": "3"}, {"a": "4"},
 	})
 
-	// With empty records enabled
-	bTrue := true
-	result2, _ := Parse("a\n1\n\n2\n3\n\n\n4\n", CsvOptions{
-		Record: &RecordOptions{Empty: true},
-	})
+	result2, _ := csvParse("a\n1\n\n2\n3\n\n\n4\n",
+		map[string]any{"record": map[string]any{"empty": true}})
 	assertRecords(t, "empty-preserved", result2, []map[string]any{
 		{"a": "1"}, {"a": ""}, {"a": "2"}, {"a": "3"},
 		{"a": ""}, {"a": ""}, {"a": "4"},
 	})
-	_ = bTrue
 }
 
-// TestHeader verifies header handling matches TS behavior.
 func TestHeader(t *testing.T) {
-	result, _ := Parse("\na,b\nA,B")
+	result, _ := csvParse("\na,b\nA,B")
 	assertRecords(t, "header-skip-leading", result, []map[string]any{
 		{"a": "A", "b": "B"},
 	})
 
-	bFalse := false
-	result2, _ := Parse("\na,b\nA,B", CsvOptions{Header: &bFalse})
+	result2, _ := csvParse("\na,b\nA,B", map[string]any{"header": false})
 	assertRecords(t, "no-header", result2, []map[string]any{
 		{"field~0": "a", "field~1": "b"},
 		{"field~0": "A", "field~1": "B"},
 	})
 }
 
-// TestDoubleQuotes verifies double-quote escaping matches TS behavior.
 func TestDoubleQuotes(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -227,7 +229,7 @@ func TestDoubleQuotes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := Parse(tt.input)
+		result, err := csvParse(tt.input)
 		if err != nil {
 			t.Errorf("Parse(%q): error: %v", tt.input, err)
 			continue
@@ -243,98 +245,87 @@ func TestDoubleQuotes(t *testing.T) {
 	}
 }
 
-// TestTrim verifies trim behavior.
 func TestTrim(t *testing.T) {
-	// Without trim - spaces preserved
-	r1, _ := Parse("a\n b")
+	r1, _ := csvParse("a\n b")
 	assertField(t, "no-trim-leading", r1, "a", " b")
 
-	r2, _ := Parse("a\nb ")
+	r2, _ := csvParse("a\nb ")
 	assertField(t, "no-trim-trailing", r2, "a", "b ")
 
-	r3, _ := Parse("a\n b ")
+	r3, _ := csvParse("a\n b ")
 	assertField(t, "no-trim-both", r3, "a", " b ")
 
-	// With trim
-	bTrue := true
-	r4, _ := Parse("a\n b", CsvOptions{Trim: &bTrue})
+	r4, _ := csvParse("a\n b", map[string]any{"trim": true})
 	assertField(t, "trim-leading", r4, "a", "b")
 
-	r5, _ := Parse("a\nb ", CsvOptions{Trim: &bTrue})
+	r5, _ := csvParse("a\nb ", map[string]any{"trim": true})
 	assertField(t, "trim-trailing", r5, "a", "b")
 
-	r6, _ := Parse("a\n b c ", CsvOptions{Trim: &bTrue})
+	r6, _ := csvParse("a\n b c ", map[string]any{"trim": true})
 	assertField(t, "trim-internal", r6, "a", "b c")
 }
 
-// TestComment verifies comment behavior.
 func TestComment(t *testing.T) {
-	// Without comments - # is literal
-	r1, _ := Parse("a\n# b")
+	r1, _ := csvParse("a\n# b")
 	assertField(t, "no-comment", r1, "a", "# b")
 
-	// With comments
-	bTrue := true
-	r2, _ := Parse("a\n# b", CsvOptions{Comment: &bTrue})
+	r2, _ := csvParse("a\n# b", map[string]any{"comment": true})
 	if len(r2) != 0 {
 		t.Errorf("comment-line: expected 0 records, got %d", len(r2))
 	}
 
-	r3, _ := Parse("a\n b #c", CsvOptions{Comment: &bTrue})
+	r3, _ := csvParse("a\n b #c", map[string]any{"comment": true})
 	assertField(t, "comment-inline", r3, "a", " b ")
 }
 
-// TestNumber verifies number parsing.
 func TestNumber(t *testing.T) {
-	r1, _ := Parse("a\n1")
+	r1, _ := csvParse("a\n1")
 	assertField(t, "no-number", r1, "a", "1")
 
-	bTrue := true
-	r2, _ := Parse("a\n1", CsvOptions{Number: &bTrue})
+	r2, _ := csvParse("a\n1", map[string]any{"number": true})
 	m := toMap(r2[0])
 	if m["a"] != float64(1) {
 		t.Errorf("number: expected 1 (float64), got %v (%T)", m["a"], m["a"])
 	}
 }
 
-// TestValue verifies value keyword parsing.
 func TestValue(t *testing.T) {
-	r1, _ := Parse("a\ntrue")
+	r1, _ := csvParse("a\ntrue")
 	assertField(t, "no-value", r1, "a", "true")
 
-	bTrue := true
-	r2, _ := Parse("a\ntrue", CsvOptions{Value: &bTrue})
+	r2, _ := csvParse("a\ntrue", map[string]any{"value": true})
 	m := toMap(r2[0])
 	if m["a"] != true {
 		t.Errorf("value-true: expected true, got %v (%T)", m["a"], m["a"])
 	}
 
-	r3, _ := Parse("a\nfalse", CsvOptions{Value: &bTrue})
+	r3, _ := csvParse("a\nfalse", map[string]any{"value": true})
 	m3 := toMap(r3[0])
 	if m3["a"] != false {
 		t.Errorf("value-false: expected false, got %v (%T)", m3["a"], m3["a"])
 	}
 
-	r4, _ := Parse("a\nnull", CsvOptions{Value: &bTrue})
+	r4, _ := csvParse("a\nnull", map[string]any{"value": true})
 	m4 := toMap(r4[0])
 	if m4["a"] != nil {
 		t.Errorf("value-null: expected nil, got %v (%T)", m4["a"], m4["a"])
 	}
 }
 
-// TestStream verifies streaming callback behavior.
 func TestStream(t *testing.T) {
 	var events []string
 	var records []any
 
-	_, _ = Parse("a,b\n1,2\n3,4\n5,6", CsvOptions{
-		Stream: func(what string, record any) {
+	j := jsonic.Make()
+	j.UseDefaults(Csv, Defaults, map[string]any{
+		"stream": func(what string, record any) {
 			events = append(events, what)
 			if what == "record" {
 				records = append(records, record)
 			}
 		},
 	})
+	j.Parse("a,b\n1,2\n3,4\n5,6")
 
 	if len(events) < 3 {
 		t.Fatalf("Expected at least 3 events, got %d", len(events))
@@ -345,99 +336,70 @@ func TestStream(t *testing.T) {
 	if events[len(events)-1] != "end" {
 		t.Errorf("Last event should be 'end', got %q", events[len(events)-1])
 	}
-
 	if len(records) != 3 {
 		t.Errorf("Expected 3 records, got %d", len(records))
 	}
 }
 
-// TestSeparators verifies custom field separators.
 func TestSeparators(t *testing.T) {
-	result, _ := Parse("a|b|c\nA|B|C\nAA|BB|CC", CsvOptions{
-		Field: &FieldOptions{Separation: "|"},
-	})
+	result, _ := csvParse("a|b|c\nA|B|C\nAA|BB|CC",
+		map[string]any{"field": map[string]any{"separation": "|"}})
 	assertRecords(t, "pipe", result, []map[string]any{
 		{"a": "A", "b": "B", "c": "C"},
 		{"a": "AA", "b": "BB", "c": "CC"},
 	})
 
-	result2, _ := Parse("a~~b~~c\nA~~B~~C", CsvOptions{
-		Field: &FieldOptions{Separation: "~~"},
-	})
+	result2, _ := csvParse("a~~b~~c\nA~~B~~C",
+		map[string]any{"field": map[string]any{"separation": "~~"}})
 	assertRecords(t, "multi-char", result2, []map[string]any{
 		{"a": "A", "b": "B", "c": "C"},
 	})
 }
 
-// TestRecordSeparators verifies custom record separators.
 func TestRecordSeparators(t *testing.T) {
-	result, _ := Parse("a,b,c%A,B,C%AA,BB,CC", CsvOptions{
-		Record: &RecordOptions{Separators: "%"},
-	})
+	result, _ := csvParse("a,b,c%A,B,C%AA,BB,CC",
+		map[string]any{"record": map[string]any{"separators": "%"}})
 	assertRecords(t, "record-sep", result, []map[string]any{
 		{"a": "A", "b": "B", "c": "C"},
 		{"a": "AA", "b": "BB", "c": "CC"},
 	})
 }
 
-// parseWithJsonicOpt parses CSV with optional jsonic-level options (custom comment defs, value defs, etc.)
-func parseWithJsonicOpt(src string, opts CsvOptions, jsonicOpt map[string]any) ([]any, error) {
-	if len(jsonicOpt) == 0 {
-		return Parse(src, opts)
+// parseFixture parses CSV with optional jsonic-level options for fixtures.
+func parseFixture(src string, pluginOpts map[string]any, jsonicOpts map[string]any) ([]any, error) {
+	if len(jsonicOpts) == 0 {
+		return csvParse(src, pluginOpts)
 	}
 
-	r := resolve(&opts)
-
-	jopts := jsonic.Options{
-		Rule: &jsonic.RuleOptions{
-			Start: "csv",
-		},
-		Number: &jsonic.NumberOptions{
-			Lex: boolPtr(r.number),
-		},
-		Value: &jsonic.ValueOptions{
-			Lex: boolPtr(r.value),
-		},
-		Comment: &jsonic.CommentOptions{
-			Lex: boolPtr(r.comment),
-		},
-		Lex: &jsonic.LexOptions{
-			EmptyResult: []any{},
-		},
-	}
+	j := jsonic.Make()
 
 	// Apply jsonicOpt: value.def
-	// Start with defaults and merge custom defs. A null value removes the def.
-	if valOpt, ok := jsonicOpt["value"].(map[string]any); ok {
+	if valOpt, ok := jsonicOpts["value"].(map[string]any); ok {
 		if defMap, ok := valOpt["def"].(map[string]any); ok {
-			if jopts.Value == nil {
-				jopts.Value = &jsonic.ValueOptions{}
-			}
-			// Start with defaults
-			jopts.Value.Def = map[string]*jsonic.ValueDef{
-				"true":  {Val: true},
-				"false": {Val: false},
-				"null":  {Val: nil},
-			}
-			// Merge custom defs
+			vopts := jsonic.Options{Value: &jsonic.ValueOptions{
+				Def: map[string]*jsonic.ValueDef{
+					"true":  {Val: true},
+					"false": {Val: false},
+					"null":  {Val: nil},
+				},
+			}}
 			for k, v := range defMap {
 				if v == nil {
-					// null means remove this def
-					delete(jopts.Value.Def, k)
+					delete(vopts.Value.Def, k)
 				} else if vm, ok := v.(map[string]any); ok {
-					jopts.Value.Def[k] = &jsonic.ValueDef{Val: vm["val"]}
+					vopts.Value.Def[k] = &jsonic.ValueDef{Val: vm["val"]}
 				}
 			}
+			j.SetOptions(vopts)
 		}
 	}
 
 	// Apply jsonicOpt: comment.def
-	if cmtOpt, ok := jsonicOpt["comment"].(map[string]any); ok {
+	if cmtOpt, ok := jsonicOpts["comment"].(map[string]any); ok {
 		if defMap, ok := cmtOpt["def"].(map[string]any); ok {
-			if jopts.Comment == nil {
-				jopts.Comment = &jsonic.CommentOptions{}
-			}
-			jopts.Comment.Def = make(map[string]*jsonic.CommentDef)
+			copts := jsonic.Options{Comment: &jsonic.CommentOptions{
+				Def: make(map[string]*jsonic.CommentDef),
+			}}
 			for name, v := range defMap {
 				if cm, ok := v.(map[string]any); ok {
 					def := &jsonic.CommentDef{}
@@ -447,25 +409,16 @@ func parseWithJsonicOpt(src string, opts CsvOptions, jsonicOpt map[string]any) (
 					if end, ok := cm["end"].(string); ok {
 						def.End = end
 					} else {
-						// No end marker means line comment
 						def.Line = true
 					}
-					jopts.Comment.Def[name] = def
+					copts.Comment.Def[name] = def
 				}
 			}
+			j.SetOptions(copts)
 		}
 	}
 
-	if r.recordSep != "" {
-		jopts.Line = &jsonic.LineOptions{
-			Chars:    r.recordSep,
-			RowChars: r.recordSep,
-		}
-	}
-
-	j := jsonic.Make(jopts)
-	pluginMap := optionsToMap(&opts)
-	j.Use(Csv, pluginMap)
+	j.UseDefaults(Csv, Defaults, pluginOpts)
 
 	result, err := j.Parse(src)
 	if err != nil {
@@ -480,7 +433,7 @@ func parseWithJsonicOpt(src string, opts CsvOptions, jsonicOpt map[string]any) (
 	return []any{}, nil
 }
 
-// Helper functions
+// Helpers
 
 func assertRecords(t *testing.T, name string, result []any, expected []map[string]any) {
 	t.Helper()
@@ -521,7 +474,6 @@ func toMap(v any) map[string]any {
 	}
 }
 
-// normalizeResult converts our internal types to standard Go types for comparison.
 func normalizeResult(result []any) []any {
 	out := make([]any, len(result))
 	for i, r := range result {
@@ -555,8 +507,6 @@ func normalizeValue(v any) any {
 	}
 }
 
-// normalizeJSON normalizes JSON-decoded values for comparison.
-// JSON numbers are always float64, so we need consistent handling.
 func normalizeJSON(v any) any {
 	switch val := v.(type) {
 	case []any:
