@@ -10,6 +10,8 @@ import (
 	jsonic "github.com/jsonicjs/jsonic/go"
 )
 
+const Version = "0.1.2"
+
 // --- BEGIN EMBEDDED csv-grammar.jsonic ---
 const grammarText = `
 # CSV Grammar Definition
