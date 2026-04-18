@@ -365,7 +365,7 @@ fields per row are expected.`,
   // Parse embedded grammar definition using a separate standard Jsonic instance.
   const grammarDef = Jsonic.make()(grammarText)
   grammarDef.ref = refs
-  jsonic.grammar(grammarDef)
+  jsonic.grammar(grammarDef, { rule: { alt: { g: 'csv' } } })
 
 
   // Rules list, elem, val are modified in code rather than the grammar file,
