@@ -427,7 +427,11 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 	if err != nil {
 		return err
 	}
-	if err := j.Grammar(gs); err != nil {
+	if err := j.Grammar(gs, &jsonic.GrammarSetting{
+		Rule: &jsonic.GrammarSettingRule{
+			Alt: &jsonic.GrammarSettingAlt{G: "csv"},
+		},
+	}); err != nil {
 		return fmt.Errorf("failed to apply csv grammar: %w", err)
 	}
 
