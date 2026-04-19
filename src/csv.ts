@@ -57,6 +57,17 @@ const grammarText = `
 # non-strict prepends to existing defaults to preserve JSON parsing).
 
 {
+  options: rule: { start: csv }
+  options: lex: { emptyResult: [] }
+  options: error: {
+    csv_extra_field: 'unexpected extra field value: $fsrc'
+    csv_missing_field: 'missing field'
+  }
+  options: hint: {
+    csv_extra_field: 'Row $row has too many fields (the first of which is: $fsrc). Only $len\\nfields per row are expected.'
+    csv_missing_field: 'Row $row has too few fields. $len fields per row are expected.'
+  }
+
   rule: csv: open: [
     { s: '#ZZ' }
     { s: '#LN' p: newline c: '@not-record-empty' }
@@ -178,11 +189,9 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     token['#CA'] = options.field.separation
   }
 
-  // Jsonic option overrides.
+  // Jsonic option overrides. Static options (rule.start, lex.emptyResult,
+  // error, hint) live in csv-grammar.jsonic.
   let jsonicOptions: any = {
-    rule: {
-      start: 'csv',
-    },
     fixed: {
       token,
     },
@@ -202,9 +211,6 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
     comment: {
       lex: comment,
     },
-    lex: {
-      emptyResult: [],
-    },
     line: {
       single: record_empty,
       chars:
@@ -215,15 +221,6 @@ const Csv: Plugin = (jsonic: Jsonic, options: CsvOptions) => {
         null == options.record.separators
           ? undefined
           : options.record.separators,
-    },
-    error: {
-      csv_extra_field: 'unexpected extra field value: $fsrc',
-      csv_missing_field: 'missing field',
-    },
-    hint: {
-      csv_extra_field: `Row $row has too many fields (the first of which is: $fsrc). Only $len
-fields per row are expected.`,
-      csv_missing_field: `Row $row has too few fields. $len fields per row are expected.`,
     },
   }
 

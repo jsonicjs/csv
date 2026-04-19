@@ -30,6 +30,17 @@ const grammarText = `
 # non-strict prepends to existing defaults to preserve JSON parsing).
 
 {
+  options: rule: { start: csv }
+  options: lex: { emptyResult: [] }
+  options: error: {
+    csv_extra_field: 'unexpected extra field value: $fsrc'
+    csv_missing_field: 'missing field'
+  }
+  options: hint: {
+    csv_extra_field: 'Row $row has too many fields (the first of which is: $fsrc). Only $len\nfields per row are expected.'
+    csv_missing_field: 'Row $row has too few fields. $len fields per row are expected.'
+  }
+
   rule: csv: open: [
     { s: '#ZZ' }
     { s: '#LN' p: newline c: '@not-record-empty' }
@@ -132,9 +143,9 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 	fieldSep := toString(fieldOpts["separation"])
 	recordSep := toString(recordOpts["separators"])
 
-	// Jsonic option overrides (matching TS jsonicOptions).
+	// Jsonic option overrides (matching TS jsonicOptions). Static options
+	// (rule.start, lex.emptyResult, error, hint) live in csv-grammar.jsonic.
 	jsonicOptions := jsonic.Options{
-		Rule: &jsonic.RuleOptions{Start: "csv"},
 		Number: &jsonic.NumberOptions{
 			Lex: boolPtr(opt_number),
 		},
@@ -144,19 +155,8 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 		Comment: &jsonic.CommentOptions{
 			Lex: boolPtr(comment),
 		},
-		Lex: &jsonic.LexOptions{
-			EmptyResult: []any{},
-		},
 		Line: &jsonic.LineOptions{
 			Single: boolPtr(record_empty),
-		},
-		Error: map[string]string{
-			"csv_extra_field":   "unexpected extra field value: $fsrc",
-			"csv_missing_field": "missing field",
-		},
-		Hint: map[string]string{
-			"csv_extra_field":   "Row $row has too many fields (the first of which is: $fsrc). Only $len\nfields per row are expected.",
-			"csv_missing_field": "Row $row has too few fields. $len fields per row are expected.",
 		},
 	}
 
@@ -200,7 +200,9 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 		jsonicOptions.TokenSet = map[string][]string{"IGNORE": {"#SP", "#CM"}}
 	}
 
-	j.SetOptions(jsonicOptions)
+	// jsonicOptions is applied AFTER Grammar() below so its TokenSet
+	// override survives Grammar's internal SetOptions (which resets IgnoreSet
+	// to defaults in buildConfig when the new options omit TokenSet).
 
 	// Named function references for declarative grammar definition.
 	emptyField := toString(fieldOpts["empty"])
@@ -435,6 +437,10 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 		return fmt.Errorf("failed to apply csv grammar: %w", err)
 	}
 
+	// Apply per-instance option overrides after Grammar so TokenSet/Fixed
+	// tokens survive Grammar's internal SetOptions.
+	j.SetOptions(jsonicOptions)
+
 	// Rules list, elem, val are modified in code rather than the grammar file,
 	// because in non-strict mode the default jsonic alternatives must be preserved
 	// to support embedded JSON values like [1,2] and {x:1}.
@@ -661,6 +667,9 @@ func parseGrammarText(text string, refs map[jsonic.FuncRef]any) (*jsonic.Grammar
 		return nil, fmt.Errorf("grammar text did not parse to a map")
 	}
 	gs := &jsonic.GrammarSpec{Ref: refs}
+	if optionsMap, ok := parsedMap["options"].(map[string]any); ok {
+		gs.OptionsMap = optionsMap
+	}
 	ruleMap, ok := parsedMap["rule"].(map[string]any)
 	if !ok {
 		return gs, nil

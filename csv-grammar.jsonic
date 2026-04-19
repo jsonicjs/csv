@@ -14,6 +14,17 @@
 # non-strict prepends to existing defaults to preserve JSON parsing).
 
 {
+  options: rule: { start: csv }
+  options: lex: { emptyResult: [] }
+  options: error: {
+    csv_extra_field: 'unexpected extra field value: $fsrc'
+    csv_missing_field: 'missing field'
+  }
+  options: hint: {
+    csv_extra_field: 'Row $row has too many fields (the first of which is: $fsrc). Only $len\nfields per row are expected.'
+    csv_missing_field: 'Row $row has too few fields. $len fields per row are expected.'
+  }
+
   rule: csv: open: [
     { s: '#ZZ' }
     { s: '#LN' p: newline c: '@not-record-empty' }
