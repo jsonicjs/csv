@@ -210,6 +210,18 @@ RFC 4180 double-quote escaping convention:
 - A literal quote inside a quoted field is represented as `""`.
 - For example: `"a""b"` parses to `a"b`.
 
+### How the TypeScript plugin relates to the grammar file
+
+The plugin shares `csv-grammar.jsonic` with the Go implementation.
+The grammar file declares the `csv`, `newline`, `record`, and
+`text` rules plus static options (`rule.start`, `lex.emptyResult`,
+`error`, `hint`). Dynamic options that depend on user input
+(tokens, IGNORE set, line separators, number/value lexing, etc.)
+are applied in code. The `list`, `elem`, and `val` rules are
+modified in code rather than the grammar file because non-strict
+mode must preserve Jsonic's default alternatives for embedded
+JSON values like `[1,2]` and `{x:1}`.
+
 
 ## Reference
 
