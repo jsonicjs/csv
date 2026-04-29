@@ -37,10 +37,16 @@ parse('a,b\n1,"hello, world"')
 **Go**
 
 ```go
-import csv "github.com/jsonicjs/csv/go"
+import (
+    csv "github.com/jsonicjs/csv/go"
+    jsonic "github.com/jsonicjs/jsonic/go"
+)
 
-result, _ := csv.Parse("name,age\nAlice,30\nBob,25")
-// [{name:Alice age:30} {name:Bob age:25}]
+j := jsonic.Make()
+j.UseDefaults(csv.Csv, csv.Defaults)
+
+result, _ := j.Parse("name,age\nAlice,30\nBob,25")
+// [map[name:Alice age:30] map[name:Bob age:25]]
 ```
 
 

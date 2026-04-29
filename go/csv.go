@@ -205,7 +205,10 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 	// to defaults in buildConfig when the new options omit TokenSet).
 
 	// Named function references for declarative grammar definition.
-	emptyField := toString(fieldOpts["empty"])
+	var emptyField any = ""
+	if v, ok := fieldOpts["empty"]; ok {
+		emptyField = v
+	}
 	nonameprefix := toString(fieldOpts["nonameprefix"])
 	fieldExact := toBool(fieldOpts["exact"])
 	var fieldNames []string
@@ -266,7 +269,6 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 
 				if objres {
 					obj := make(map[string]any)
-					var keys []string
 					i := 0
 
 					if fields != nil {
@@ -288,7 +290,6 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 								val = record[fI]
 							}
 							obj[fields[fI]] = val
-							keys = append(keys, fields[fI])
 						}
 						i = len(fields)
 					}
@@ -300,14 +301,12 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 							val = emptyField
 						}
 						obj[fname] = val
-						keys = append(keys, fname)
 					}
 
-					out := orderedMap{keys: keys, m: obj}
 					if stream != nil {
-						stream("record", out)
+						stream("record", obj)
 					} else if arr, ok := r.Node.([]any); ok {
-						r.Node = append(arr, out)
+						r.Node = append(arr, obj)
 						if r.Parent != jsonic.NoRule && r.Parent != nil {
 							r.Parent.Node = r.Node
 						}
@@ -451,25 +450,107 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 	ZZ := j.Token("#ZZ")
 	VAL := j.TokenSet("VAL")
 
-	j.Rule("list", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
-		rs.Clear()
-		rs.AddBO(func(r *jsonic.Rule, ctx *jsonic.Context) {
-			r.Node = make([]any, 0)
+	if strict {
+		// Strict mode: replace list/elem/val rules entirely.
+		// JSON-syntax tokens are disabled, so the only alternates we need
+		// are the CSV-specific ones.
+		j.Rule("list", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.Clear()
+			rs.AddBO(func(r *jsonic.Rule, ctx *jsonic.Context) {
+				r.Node = make([]any, 0)
+			})
+			rs.Open = []*jsonic.AltSpec{
+				{S: [][]jsonic.Tin{{LN}}, B: 1},
+				{P: "elem"},
+			}
+			rs.Close = []*jsonic.AltSpec{
+				{S: [][]jsonic.Tin{{LN}}, B: 1},
+				{S: [][]jsonic.Tin{{ZZ}}},
+			}
 		})
-		rs.Open = []*jsonic.AltSpec{
-			{S: [][]jsonic.Tin{{LN}}, B: 1},
-			{P: "elem"},
-		}
-		rs.Close = []*jsonic.AltSpec{
-			{S: [][]jsonic.Tin{{LN}}, B: 1},
-			{S: [][]jsonic.Tin{{ZZ}}},
-		}
-	})
 
-	j.Rule("elem", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
-		rs.Clear()
-		rs.Open = []*jsonic.AltSpec{
-			{S: [][]jsonic.Tin{{CA}}, B: 1,
+		j.Rule("elem", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.Clear()
+			rs.Open = []*jsonic.AltSpec{
+				{S: [][]jsonic.Tin{{CA}}, B: 1,
+					A: jsonic.AltAction(func(r *jsonic.Rule, ctx *jsonic.Context) {
+						if arr, ok := r.Node.([]any); ok {
+							r.Node = append(arr, emptyField)
+							if r.Parent != jsonic.NoRule && r.Parent != nil {
+								r.Parent.Node = r.Node
+							}
+						}
+						r.U["done"] = true
+					})},
+				{P: "val"},
+			}
+			rs.Close = []*jsonic.AltSpec{
+				{S: [][]jsonic.Tin{{CA}, {LN, ZZ}}, B: 1,
+					A: jsonic.AltAction(func(r *jsonic.Rule, ctx *jsonic.Context) {
+						if arr, ok := r.Node.([]any); ok {
+							r.Node = append(arr, emptyField)
+							if r.Parent != jsonic.NoRule && r.Parent != nil {
+								r.Parent.Node = r.Node
+							}
+						}
+					})},
+				{S: [][]jsonic.Tin{{CA}}, R: "elem"},
+				{S: [][]jsonic.Tin{{LN}}, B: 1},
+				{S: [][]jsonic.Tin{{ZZ}}},
+			}
+			rs.AddBC(func(r *jsonic.Rule, ctx *jsonic.Context) {
+				done, _ := r.U["done"].(bool)
+				if !done && !jsonic.IsUndefined(r.Child.Node) {
+					if arr, ok := r.Node.([]any); ok {
+						r.Node = append(arr, r.Child.Node)
+						if r.Parent != jsonic.NoRule && r.Parent != nil {
+							r.Parent.Node = r.Node
+						}
+					}
+				}
+			})
+		})
+
+		j.Rule("val", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.Clear()
+			rs.AddBO(func(r *jsonic.Rule, ctx *jsonic.Context) {
+				r.Node = jsonic.Undefined
+			})
+			rs.Open = []*jsonic.AltSpec{
+				{S: [][]jsonic.Tin{VAL, {SP}}, B: 2, P: "text"},
+				{S: [][]jsonic.Tin{{SP}}, B: 1, P: "text"},
+				{S: [][]jsonic.Tin{VAL}},
+				{S: [][]jsonic.Tin{{LN}}, B: 1},
+			}
+			rs.AddBC(func(r *jsonic.Rule, ctx *jsonic.Context) {
+				if jsonic.IsUndefined(r.Node) {
+					if jsonic.IsUndefined(r.Child.Node) {
+						if r.OS == 0 {
+							r.Node = jsonic.Undefined
+						} else {
+							r.Node = r.O0.ResolveVal(r, ctx)
+						}
+					} else {
+						r.Node = r.Child.Node
+					}
+				}
+			})
+		})
+	} else {
+		// Non-strict mode: prepend CSV alternates so default JSON-value
+		// alternates (handling [1,2], {x:1}, etc.) remain available.
+		j.Rule("list", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.PrependOpen(&jsonic.AltSpec{S: [][]jsonic.Tin{{LN}}, B: 1})
+			rs.AddOpen(&jsonic.AltSpec{P: "elem"})
+			rs.PrependClose(
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{LN}}, B: 1},
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{ZZ}}},
+			)
+		})
+
+		j.Rule("elem", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.PrependOpen(&jsonic.AltSpec{
+				S: [][]jsonic.Tin{{CA}}, B: 1,
 				A: jsonic.AltAction(func(r *jsonic.Rule, ctx *jsonic.Context) {
 					if arr, ok := r.Node.([]any); ok {
 						r.Node = append(arr, emptyField)
@@ -478,61 +559,30 @@ func Csv(j *jsonic.Jsonic, options map[string]any) error {
 						}
 					}
 					r.U["done"] = true
-				})},
-			{P: "val"},
-		}
-		rs.Close = []*jsonic.AltSpec{
-			{S: [][]jsonic.Tin{{CA}, {LN, ZZ}}, B: 1,
-				A: jsonic.AltAction(func(r *jsonic.Rule, ctx *jsonic.Context) {
-					if arr, ok := r.Node.([]any); ok {
-						r.Node = append(arr, emptyField)
-						if r.Parent != jsonic.NoRule && r.Parent != nil {
-							r.Parent.Node = r.Node
+				}),
+			})
+			rs.PrependClose(
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{CA}, {LN, ZZ}}, B: 1,
+					A: jsonic.AltAction(func(r *jsonic.Rule, ctx *jsonic.Context) {
+						if arr, ok := r.Node.([]any); ok {
+							r.Node = append(arr, emptyField)
+							if r.Parent != jsonic.NoRule && r.Parent != nil {
+								r.Parent.Node = r.Node
+							}
 						}
-					}
-				})},
-			{S: [][]jsonic.Tin{{CA}}, R: "elem"},
-			{S: [][]jsonic.Tin{{LN}}, B: 1},
-			{S: [][]jsonic.Tin{{ZZ}}},
-		}
-		rs.AddBC(func(r *jsonic.Rule, ctx *jsonic.Context) {
-			done, _ := r.U["done"].(bool)
-			if !done && !jsonic.IsUndefined(r.Child.Node) {
-				if arr, ok := r.Node.([]any); ok {
-					r.Node = append(arr, r.Child.Node)
-					if r.Parent != jsonic.NoRule && r.Parent != nil {
-						r.Parent.Node = r.Node
-					}
-				}
-			}
+					})},
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{LN}}, B: 1},
+			)
 		})
-	})
 
-	j.Rule("val", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
-		rs.Clear()
-		rs.AddBO(func(r *jsonic.Rule, ctx *jsonic.Context) {
-			r.Node = jsonic.Undefined
+		j.Rule("val", func(rs *jsonic.RuleSpec, _ *jsonic.Parser) {
+			rs.PrependOpen(
+				&jsonic.AltSpec{S: [][]jsonic.Tin{VAL, {SP}}, B: 2, P: "text"},
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{SP}}, B: 1, P: "text"},
+				&jsonic.AltSpec{S: [][]jsonic.Tin{{LN}}, B: 1},
+			)
 		})
-		rs.Open = []*jsonic.AltSpec{
-			{S: [][]jsonic.Tin{VAL, {SP}}, B: 2, P: "text"},
-			{S: [][]jsonic.Tin{{SP}}, B: 1, P: "text"},
-			{S: [][]jsonic.Tin{VAL}},
-			{S: [][]jsonic.Tin{{LN}}, B: 1},
-		}
-		rs.AddBC(func(r *jsonic.Rule, ctx *jsonic.Context) {
-			if jsonic.IsUndefined(r.Node) {
-				if jsonic.IsUndefined(r.Child.Node) {
-					if r.OS == 0 {
-						r.Node = jsonic.Undefined
-					} else {
-						r.Node = r.O0.ResolveVal(r, ctx)
-					}
-				} else {
-					r.Node = r.Child.Node
-				}
-			}
-		})
-	})
+	}
 
 	return nil
 }
@@ -786,8 +836,3 @@ func boolPtr(b bool) *bool {
 	return &b
 }
 
-// orderedMap maintains insertion order for JSON serialization comparison.
-type orderedMap struct {
-	keys []string
-	m    map[string]any
-}

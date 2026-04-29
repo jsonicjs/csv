@@ -365,6 +365,97 @@ func TestRecordSeparators(t *testing.T) {
 	})
 }
 
+func TestUnstrict(t *testing.T) {
+	// scalar coercion (non-strict enables number by default; numbers
+	// arrive as float64 from the underlying jsonic value lexer)
+	r1, err := csvParse("a,b\n1,2", map[string]any{"strict": false})
+	if err != nil {
+		t.Fatalf("unstrict scalar: %v", err)
+	}
+	m1 := toMap(r1[0])
+	if !reflect.DeepEqual(m1, map[string]any{"a": float64(1), "b": float64(2)}) {
+		t.Errorf("unstrict scalar: got %#v", m1)
+	}
+
+	// embedded JSON values
+	r2, err := csvParse("a,b,c\ntrue,[1,2],{x:1}",
+		map[string]any{"strict": false})
+	if err != nil {
+		t.Fatalf("unstrict embedded: %v", err)
+	}
+	m2 := toMap(r2[0])
+	if m2["a"] != true {
+		t.Errorf("unstrict a: expected true, got %v", m2["a"])
+	}
+	if !reflect.DeepEqual(m2["b"], []any{float64(1), float64(2)}) {
+		t.Errorf("unstrict b: expected [1 2], got %#v", m2["b"])
+	}
+	if !reflect.DeepEqual(m2["c"], map[string]any{"x": float64(1)}) {
+		t.Errorf("unstrict c: expected {x:1}, got %#v", m2["c"])
+	}
+
+	// nested objects with quoted strings + Jsonic-style escapes
+	src := "a,b,c\ntrue,[1,2],{x:{y:\"q\\\"w\"}}\n x , 'y\\'y', \"z\\\"z\"\n"
+	r3, err := csvParse(src, map[string]any{"strict": false})
+	if err != nil {
+		t.Fatalf("unstrict full: %v", err)
+	}
+	if len(r3) != 2 {
+		t.Fatalf("unstrict full: expected 2 records, got %d", len(r3))
+	}
+	row0 := toMap(r3[0])
+	wantC0 := map[string]any{"x": map[string]any{"y": `q"w`}}
+	if !reflect.DeepEqual(row0["c"], wantC0) {
+		t.Errorf("unstrict full row0.c: expected %v, got %v", wantC0, row0["c"])
+	}
+	row1 := toMap(r3[1])
+	if row1["a"] != "x" || row1["b"] != "y'y" || row1["c"] != `z"z` {
+		t.Errorf("unstrict full row1: got %v", row1)
+	}
+}
+
+func TestEmptyAnyType(t *testing.T) {
+	// nil empty value
+	r1, _ := csvParse("a,b,c\n1,,3",
+		map[string]any{"field": map[string]any{"empty": nil}})
+	m1 := toMap(r1[0])
+	if m1["b"] != nil {
+		t.Errorf("empty=nil: expected nil, got %v (%T)", m1["b"], m1["b"])
+	}
+
+	// bool empty value
+	r2, _ := csvParse("a,b\n1,",
+		map[string]any{"field": map[string]any{"empty": false}})
+	m2 := toMap(r2[0])
+	if m2["b"] != false {
+		t.Errorf("empty=false: expected false, got %v (%T)", m2["b"], m2["b"])
+	}
+
+	// numeric empty value
+	r3, _ := csvParse("a,b\n1,",
+		map[string]any{"field": map[string]any{"empty": 42}})
+	m3 := toMap(r3[0])
+	if m3["b"] != 42 {
+		t.Errorf("empty=42: expected 42, got %v (%T)", m3["b"], m3["b"])
+	}
+}
+
+func TestObjectOutputIsMap(t *testing.T) {
+	// Records under default options must be plain map[string]any so
+	// external callers can read them and json.Marshal them sensibly.
+	r, err := csvParse("name,age\nAlice,30\nBob,25")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, ok := r[0].(map[string]any); !ok {
+		t.Fatalf("expected map[string]any, got %T", r[0])
+	}
+	m := r[0].(map[string]any)
+	if m["name"] != "Alice" || m["age"] != "30" {
+		t.Errorf("got %v", m)
+	}
+}
+
 // parseFixture parses CSV with optional jsonic-level options for fixtures.
 func parseFixture(src string, pluginOpts map[string]any, jsonicOpts map[string]any) ([]any, error) {
 	if len(jsonicOpts) == 0 {
@@ -464,14 +555,10 @@ func assertField(t *testing.T, name string, result []any, key string, expected s
 }
 
 func toMap(v any) map[string]any {
-	switch m := v.(type) {
-	case map[string]any:
+	if m, ok := v.(map[string]any); ok {
 		return m
-	case orderedMap:
-		return m.m
-	default:
-		return nil
 	}
+	return nil
 }
 
 func normalizeResult(result []any) []any {
@@ -484,12 +571,6 @@ func normalizeResult(result []any) []any {
 
 func normalizeValue(v any) any {
 	switch val := v.(type) {
-	case orderedMap:
-		m := make(map[string]any)
-		for k, v := range val.m {
-			m[k] = normalizeValue(v)
-		}
-		return m
 	case map[string]any:
 		m := make(map[string]any)
 		for k, v := range val {
